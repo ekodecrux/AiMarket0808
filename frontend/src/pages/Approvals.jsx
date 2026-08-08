@@ -75,7 +75,7 @@ export default function Approvals() {
         description="The AI proposes campaigns daily. Nothing goes live without your approval — approve to launch, reject to discard."
         action={
           <button onClick={generate} disabled={busy} data-testid="generate-proposals-btn"
-            className="flex items-center gap-2 bg-[#FF3B30] text-white px-4 py-2.5 text-sm uppercase tracking-wider hover:bg-[#D63026] disabled:opacity-50 transition-colors duration-200">
+            className="flex items-center gap-2 bg-[#2563EB] text-white px-4 py-2.5 text-sm uppercase tracking-wider hover:bg-[#1D4ED8] disabled:opacity-50 transition-colors duration-200">
             <Sparkle size={16} weight="fill" /> {busy ? "Generating" : "Generate Now"}
           </button>
         }
@@ -85,14 +85,14 @@ export default function Approvals() {
         <div className="border border-border bg-white mb-8">
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 border border-zinc-200 flex items-center justify-center"><Robot size={18} className="text-[#FF3B30]" /></div>
+              <div className="w-9 h-9 border border-zinc-200 flex items-center justify-center"><Robot size={18} className="text-[#2563EB]" /></div>
               <div>
                 <div className="text-sm">Daily Autopilot</div>
                 <div className="text-xs text-zinc-500">Auto-generate fresh campaign proposals every day for your review.</div>
               </div>
             </div>
             <button onClick={toggleAutopilot} data-testid="autopilot-toggle"
-              className={`relative w-14 h-7 border transition-colors duration-200 ${autopilot ? "bg-[#FF3B30] border-[#FF3B30]" : "bg-transparent border-zinc-300"}`}>
+              className={`relative w-14 h-7 border transition-colors duration-200 ${autopilot ? "bg-[#2563EB] border-[#2563EB]" : "bg-transparent border-zinc-300"}`}>
               <span className={`absolute top-0.5 w-5 h-5 bg-white transition-all duration-200 ${autopilot ? "left-8" : "left-0.5"}`} />
             </button>
           </div>
@@ -149,7 +149,7 @@ export default function Approvals() {
                       <CheckCircle size={16} weight="fill" /> Approve & Launch
                     </button>
                     <button onClick={() => reject(it.id)} data-testid={`reject-${it.id}`}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 text-sm uppercase tracking-wider text-zinc-500 hover:bg-[#FF3B30]/10 hover:text-[#FF3B30] transition-colors duration-200">
+                      className="flex-1 flex items-center justify-center gap-2 py-3 text-sm uppercase tracking-wider text-zinc-500 hover:bg-[#2563EB]/10 hover:text-[#2563EB] transition-colors duration-200">
                       <XCircle size={16} /> Reject
                     </button>
                   </div>
@@ -166,9 +166,9 @@ export default function Approvals() {
 const Stepper = ({ value, min, max, onChange, testid }) => (
   <div className="flex items-center border border-zinc-200" data-testid={`${testid}-stepper`}>
     <button onClick={() => onChange(value - 1)} disabled={value <= min} data-testid={`${testid}-dec`}
-      className="w-10 h-10 flex items-center justify-center text-lg text-zinc-500 hover:text-white hover:bg-zinc-100 disabled:opacity-30 transition-colors duration-200">−</button>
+      className="w-10 h-10 flex items-center justify-center text-lg text-zinc-500 hover:text-zinc-950 hover:bg-zinc-100 disabled:opacity-30 transition-colors duration-200">−</button>
     <div className="w-14 text-center font-mono text-lg" data-testid={`${testid}-value`}>{value}</div>
     <button onClick={() => onChange(value + 1)} disabled={value >= max} data-testid={`${testid}-inc`}
-      className="w-10 h-10 flex items-center justify-center text-lg text-zinc-500 hover:text-white hover:bg-zinc-100 disabled:opacity-30 transition-colors duration-200">+</button>
+      className="w-10 h-10 flex items-center justify-center text-lg text-zinc-500 hover:text-zinc-950 hover:bg-zinc-100 disabled:opacity-30 transition-colors duration-200">+</button>
   </div>
 );

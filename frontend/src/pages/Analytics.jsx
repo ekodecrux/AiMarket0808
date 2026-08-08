@@ -18,7 +18,7 @@ export default function Analytics() {
   useEffect(() => { api.get("/analytics/overview").then((r) => setData(r.data)).catch(() => {}); }, []);
   if (!data) return <div className="p-8"><Loader label="Crunching your data" /></div>;
   const k = data.kpis;
-  const roiData = [{ name: "ROI", value: Math.max(Math.min(k.roi, 100), 0), fill: "#FF3B30" }];
+  const roiData = [{ name: "ROI", value: Math.max(Math.min(k.roi, 100), 0), fill: "#2563EB" }];
 
   return (
     <div className="p-5 lg:p-8">
@@ -48,7 +48,7 @@ export default function Analytics() {
                   <XAxis dataKey="month" stroke="#52525B" fontSize={11} tickLine={false} axisLine={false} />
                   <YAxis stroke="#52525B" fontSize={11} tickLine={false} axisLine={false} />
                   <Tooltip {...tip} />
-                  <Line type="monotone" dataKey="leads" stroke="#FF3B30" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="leads" stroke="#2563EB" strokeWidth={2} dot={false} />
                   <Line type="monotone" dataKey="conversions" stroke="#A1A1AA" strokeWidth={1.5} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
@@ -61,12 +61,12 @@ export default function Analytics() {
             <div className="p-4 h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={data.trend}>
-                  <defs><linearGradient id="ar" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#FF3B30" stopOpacity={0.25} /><stop offset="100%" stopColor="#FF3B30" stopOpacity={0} /></linearGradient></defs>
+                  <defs><linearGradient id="ar" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#2563EB" stopOpacity={0.25} /><stop offset="100%" stopColor="#2563EB" stopOpacity={0} /></linearGradient></defs>
                   <CartesianGrid stroke="#18181B" vertical={false} />
                   <XAxis dataKey="month" stroke="#52525B" fontSize={11} tickLine={false} axisLine={false} />
                   <YAxis stroke="#52525B" fontSize={11} tickLine={false} axisLine={false} />
                   <Tooltip {...tip} />
-                  <Area type="monotone" dataKey="revenue" stroke="#FF3B30" strokeWidth={2} fill="url(#ar)" />
+                  <Area type="monotone" dataKey="revenue" stroke="#2563EB" strokeWidth={2} fill="url(#ar)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -88,7 +88,7 @@ export default function Analytics() {
                     <XAxis type="number" stroke="#52525B" fontSize={11} tickLine={false} axisLine={false} />
                     <YAxis type="category" dataKey="channel" stroke="#52525B" fontSize={11} tickLine={false} axisLine={false} width={90} />
                     <Tooltip {...tip} cursor={{ fill: "#141414" }} />
-                    <Bar dataKey="roas" fill="#FF3B30" />
+                    <Bar dataKey="roas" fill="#2563EB" />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -106,7 +106,7 @@ export default function Analytics() {
                 </RadialBarChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <div className="font-mono text-3xl text-[#FF3B30]">{k.roi}%</div>
+                <div className="font-mono text-3xl text-[#2563EB]">{k.roi}%</div>
                 <div className="text-xs text-zinc-500 uppercase tracking-wider">Return on Spend</div>
               </div>
             </div>

@@ -29,10 +29,10 @@ export default function Flow() {
       <Fade>
         <div className="border border-border bg-white p-5 mb-8">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs uppercase tracking-[0.15em] text-zinc-500 flex items-center gap-2"><Path size={16} className="text-[#FF3B30]" /> Pipeline Progress</span>
+            <span className="text-xs uppercase tracking-[0.15em] text-zinc-500 flex items-center gap-2"><Path size={16} className="text-[#2563EB]" /> Pipeline Progress</span>
             <span className="font-mono text-sm">{data.completed}/{data.total} · {pct}%</span>
           </div>
-          <div className="h-2 bg-zinc-100"><div className="h-full bg-[#FF3B30] transition-all duration-500" style={{ width: `${pct}%` }} /></div>
+          <div className="h-2 bg-zinc-100"><div className="h-full bg-[#2563EB] transition-all duration-500" style={{ width: `${pct}%` }} /></div>
         </div>
       </Fade>
 
@@ -44,7 +44,7 @@ export default function Flow() {
               <button
                 onClick={() => navigate(s.route)}
                 data-testid={`flow-step-${s.key}`}
-                className="group w-full flex items-center gap-4 border border-border bg-white p-4 text-left hover:border-[#FF3B30] transition-colors duration-200"
+                className="group w-full flex items-center gap-4 border border-border bg-white p-4 text-left hover:border-[#2563EB] transition-colors duration-200"
               >
                 <div className="shrink-0">
                   {s.done
@@ -56,7 +56,7 @@ export default function Flow() {
                   <div className="font-display text-lg">{s.label}</div>
                   <div className="text-xs text-zinc-500">{s.done ? `${s.count} ready` : "Not started — click to begin"}</div>
                 </div>
-                <ArrowRight size={18} className="text-zinc-500 group-hover:text-[#FF3B30] transition-colors duration-200" />
+                <ArrowRight size={18} className="text-zinc-500 group-hover:text-[#2563EB] transition-colors duration-200" />
               </button>
             </Fade>
           ))}

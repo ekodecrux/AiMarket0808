@@ -21,7 +21,7 @@ export default function Agents() {
               <div className="bg-white p-6 h-full hover:bg-zinc-50 transition-colors duration-200" data-testid={`agent-${a.name.replace(/\s+/g, "-").toLowerCase()}`}>
                 <div className="flex items-start justify-between">
                   <div className="w-10 h-10 border border-zinc-200 flex items-center justify-center">
-                    <Robot size={20} className="text-[#FF3B30]" />
+                    <Robot size={20} className="text-[#2563EB]" />
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className={`w-1.5 h-1.5 ${a.status === "Active" ? "bg-[#34C759] animate-pulse-dot" : "bg-zinc-600"}`} />

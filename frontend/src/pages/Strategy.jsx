@@ -61,7 +61,7 @@ export default function Strategy() {
                       placeholder={ph}
                       onChange={(e) => setForm({ ...form, [key]: e.target.value })}
                       data-testid={`strategy-${key}`}
-                      className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200 resize-none"
+                      className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] transition-colors duration-200 resize-none"
                     />
                   ) : (
                     <input
@@ -69,7 +69,7 @@ export default function Strategy() {
                       placeholder={ph}
                       onChange={(e) => setForm({ ...form, [key]: e.target.value })}
                       data-testid={`strategy-${key}`}
-                      className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200"
+                      className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] transition-colors duration-200"
                     />
                   )}
                 </div>
@@ -78,7 +78,7 @@ export default function Strategy() {
                 onClick={generate}
                 disabled={busy}
                 data-testid="generate-strategy-btn"
-                className="w-full flex items-center justify-center gap-2 bg-[#FF3B30] text-white py-3 text-sm uppercase tracking-wider hover:bg-[#D63026] disabled:opacity-50 transition-colors duration-200"
+                className="w-full flex items-center justify-center gap-2 bg-[#2563EB] text-white py-3 text-sm uppercase tracking-wider hover:bg-[#1D4ED8] disabled:opacity-50 transition-colors duration-200"
               >
                 <Sparkle size={16} weight="fill" /> {busy ? "Generating" : "Generate Strategy"}
               </button>
@@ -146,7 +146,7 @@ function StrategyResult({ result }) {
               {result.personas.map((p, i) => (
                 <div key={i} className="border border-zinc-200 p-4">
                   <div className="font-display text-lg">{p.name}</div>
-                  <div className="text-xs text-[#FF3B30] uppercase tracking-wider mb-2">{p.role}</div>
+                  <div className="text-xs text-[#2563EB] uppercase tracking-wider mb-2">{p.role}</div>
                   <div className="text-xs text-zinc-500"><span className="text-zinc-500">Pain: </span>{p.pain_points}</div>
                   <div className="text-xs text-zinc-500 mt-1"><span className="text-zinc-500">Channels: </span>{p.channels}</div>
                 </div>
@@ -162,9 +162,9 @@ function StrategyResult({ result }) {
                 <div key={i}>
                   <div className="flex justify-between text-sm mb-1">
                     <span>{c.channel}</span>
-                    <span className="font-mono text-[#FF3B30]">{c.allocation_pct}%</span>
+                    <span className="font-mono text-[#2563EB]">{c.allocation_pct}%</span>
                   </div>
-                  <div className="h-1.5 bg-zinc-100"><div className="h-full bg-[#FF3B30]" style={{ width: `${c.allocation_pct}%` }} /></div>
+                  <div className="h-1.5 bg-zinc-100"><div className="h-full bg-[#2563EB]" style={{ width: `${c.allocation_pct}%` }} /></div>
                   <div className="text-xs text-zinc-500 mt-1">{c.rationale}</div>
                 </div>
               ))}
@@ -196,7 +196,7 @@ function StrategyResult({ result }) {
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {result.campaign_calendar.map((q, i) => (
                 <div key={i} className="border border-zinc-200 p-3">
-                  <div className="font-mono text-[#FF3B30] text-sm">{q.quarter}</div>
+                  <div className="font-mono text-[#2563EB] text-sm">{q.quarter}</div>
                   <div className="text-sm mt-1">{q.theme}</div>
                   <div className="text-xs text-zinc-500 mt-1">{q.key_campaigns}</div>
                 </div>

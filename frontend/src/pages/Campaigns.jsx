@@ -34,7 +34,7 @@ export default function Campaigns() {
         description="Track real spend and results per channel. Enter actuals and the engine computes CTR, CPA, ROAS and ROI live."
         action={
           <button onClick={() => setShowForm(true)} data-testid="add-campaign-btn"
-            className="flex items-center gap-2 bg-[#FF3B30] text-white px-4 py-2.5 text-sm uppercase tracking-wider hover:bg-[#D63026] transition-colors duration-200">
+            className="flex items-center gap-2 bg-[#2563EB] text-white px-4 py-2.5 text-sm uppercase tracking-wider hover:bg-[#1D4ED8] transition-colors duration-200">
             <Plus size={16} /> New Campaign
           </button>
         }
@@ -70,9 +70,9 @@ export default function Campaigns() {
                 ))}
               </div>
               <div className="flex items-center gap-2 p-4">
-                <button onClick={() => setEditing(c)} data-testid={`edit-metrics-${c.id}`} className="flex items-center gap-1 text-xs border border-zinc-200 px-3 py-1.5 hover:border-[#FF3B30] hover:text-[#FF3B30] transition-colors duration-200"><PencilSimple size={14} /> Update Metrics</button>
+                <button onClick={() => setEditing(c)} data-testid={`edit-metrics-${c.id}`} className="flex items-center gap-1 text-xs border border-zinc-200 px-3 py-1.5 hover:border-[#2563EB] hover:text-[#2563EB] transition-colors duration-200"><PencilSimple size={14} /> Update Metrics</button>
                 <button onClick={() => toggle(c.id)} data-testid={`toggle-campaign-${c.id}`} className="flex items-center gap-1 text-xs border border-zinc-200 px-3 py-1.5 hover:border-zinc-600 transition-colors duration-200">{c.status === "Active" ? <><Pause size={14} /> Pause</> : <><Play size={14} /> Resume</>}</button>
-                <button onClick={() => del(c.id)} data-testid={`delete-campaign-${c.id}`} className="ml-auto text-zinc-500 hover:text-[#FF3B30] transition-colors duration-200"><Trash size={16} /></button>
+                <button onClick={() => del(c.id)} data-testid={`delete-campaign-${c.id}`} className="ml-auto text-zinc-500 hover:text-[#2563EB] transition-colors duration-200"><Trash size={16} /></button>
               </div>
             </div>
           ))}
@@ -109,7 +109,7 @@ function CampaignForm({ clientId, onClose, onSaved }) {
         <div>
           <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">Channel</label>
           <select value={form.channel} onChange={(e) => setForm({ ...form, channel: e.target.value })} data-testid="campaign-channel"
-            className="w-full bg-white border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200">
+            className="w-full bg-white border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] transition-colors duration-200">
             {CHANNELS.map((c) => <option key={c}>{c}</option>)}
           </select>
         </div>
@@ -157,7 +157,7 @@ const Modal = ({ title, children, onClose }) => (
     <div className="bg-white border border-border w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
       <div className="flex items-center justify-between px-5 py-4 border-b border-border">
         <h3 className="font-display text-lg">{title}</h3>
-        <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors duration-200"><X size={20} /></button>
+        <button onClick={onClose} className="text-zinc-500 hover:text-zinc-950 transition-colors duration-200"><X size={20} /></button>
       </div>
       <div className="p-5">{children}</div>
     </div>
@@ -168,13 +168,13 @@ const TextIn = ({ label, value, onChange, testid, type = "text", span }) => (
   <div className={span ? "col-span-2" : ""}>
     <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">{label}</label>
     <input type={type} value={value} onChange={(e) => onChange(e.target.value)} data-testid={testid}
-      className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200" />
+      className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] transition-colors duration-200" />
   </div>
 );
 
 const FormFooter = ({ busy, onClose, onSubmit, testid }) => (
   <div className="flex justify-end gap-3 mt-6">
     <button onClick={onClose} className="px-4 py-2 text-sm border border-zinc-200 hover:border-zinc-600 transition-colors duration-200">Cancel</button>
-    <button onClick={onSubmit} disabled={busy} data-testid={testid} className="px-4 py-2 text-sm bg-[#FF3B30] text-white hover:bg-[#D63026] disabled:opacity-50 transition-colors duration-200">{busy ? "Saving" : "Save"}</button>
+    <button onClick={onSubmit} disabled={busy} data-testid={testid} className="px-4 py-2 text-sm bg-[#2563EB] text-white hover:bg-[#1D4ED8] disabled:opacity-50 transition-colors duration-200">{busy ? "Saving" : "Save"}</button>
   </div>
 );

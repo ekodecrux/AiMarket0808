@@ -60,14 +60,14 @@ export default function SalesAssistant() {
           <div className="lg:col-span-1 space-y-4">
             <Section title="Select Lead">
               <select value={selected} onChange={(e) => setSelected(e.target.value)} data-testid="sales-lead-select"
-                className="w-full bg-white border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200">
+                className="w-full bg-white border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] transition-colors duration-200">
                 {leads.map((l) => <option key={l.id} value={l.id}>{l.name} — {l.company}</option>)}
               </select>
               {lead && (
                 <div className="mt-4 pt-4 border-t border-border text-sm space-y-1">
                   <div className="text-zinc-500">{lead.role || "—"}</div>
                   <div className="text-zinc-500 text-xs">{lead.email}</div>
-                  <div className="text-xs"><span className="text-zinc-500">Category: </span><span className="text-[#FF3B30]">{lead.category}</span></div>
+                  <div className="text-xs"><span className="text-zinc-500">Category: </span><span className="text-[#2563EB]">{lead.category}</span></div>
                 </div>
               )}
             </Section>
@@ -75,7 +75,7 @@ export default function SalesAssistant() {
               <div className="space-y-2">
                 {ACTIONS.map((a) => (
                   <button key={a.id} onClick={() => run(a.id)} disabled={busy} data-testid={`sales-action-${a.id}`}
-                    className="w-full flex items-center gap-3 px-3 py-3 border border-zinc-200 text-sm hover:border-[#FF3B30] hover:text-[#FF3B30] transition-colors duration-200 disabled:opacity-40">
+                    className="w-full flex items-center gap-3 px-3 py-3 border border-zinc-200 text-sm hover:border-[#2563EB] hover:text-[#2563EB] transition-colors duration-200 disabled:opacity-40">
                     <a.icon size={18} /> {busy === a.id ? "Generating..." : a.label}
                   </button>
                 ))}
@@ -97,7 +97,7 @@ export default function SalesAssistant() {
                         <PaperPlaneTilt size={13} /> {sending ? "Sending" : "Send Email"}
                       </button>
                     )}
-                    <button onClick={() => { navigator.clipboard.writeText(result.message); toast.success("Copied"); }} data-testid="copy-sales-btn" className="text-zinc-500 hover:text-white transition-colors duration-200"><Copy size={16} /></button>
+                    <button onClick={() => { navigator.clipboard.writeText(result.message); toast.success("Copied"); }} data-testid="copy-sales-btn" className="text-zinc-500 hover:text-zinc-950 transition-colors duration-200"><Copy size={16} /></button>
                   </div>
                 </div>
               }>

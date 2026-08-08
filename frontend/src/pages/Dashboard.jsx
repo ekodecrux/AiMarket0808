@@ -64,15 +64,15 @@ export default function Dashboard() {
                 <AreaChart data={data.trend}>
                   <defs>
                     <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#FF3B30" stopOpacity={0.25} />
-                      <stop offset="100%" stopColor="#FF3B30" stopOpacity={0} />
+                      <stop offset="0%" stopColor="#2563EB" stopOpacity={0.25} />
+                      <stop offset="100%" stopColor="#2563EB" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid stroke="#18181B" vertical={false} />
                   <XAxis dataKey="month" stroke="#52525B" fontSize={11} tickLine={false} axisLine={false} />
                   <YAxis stroke="#52525B" fontSize={11} tickLine={false} axisLine={false} />
                   <Tooltip {...chartTip} />
-                  <Area type="monotone" dataKey="revenue" stroke="#FF3B30" strokeWidth={2} fill="url(#g1)" />
+                  <Area type="monotone" dataKey="revenue" stroke="#2563EB" strokeWidth={2} fill="url(#g1)" />
                   <Area type="monotone" dataKey="leads" stroke="#A1A1AA" strokeWidth={1.5} fill="none" />
                 </AreaChart>
               </ResponsiveContainer>
@@ -97,7 +97,7 @@ export default function Dashboard() {
                     </div>
                     <div className="h-2 bg-zinc-100">
                       <div
-                        className="h-full bg-[#FF3B30] transition-all duration-500"
+                        className="h-full bg-[#2563EB] transition-all duration-500"
                         style={{ width: `${pct}%`, opacity: 1 - i * 0.14 }}
                       />
                     </div>
@@ -126,7 +126,7 @@ export default function Dashboard() {
                   <XAxis dataKey="channel" stroke="#52525B" fontSize={11} tickLine={false} axisLine={false} />
                   <YAxis stroke="#52525B" fontSize={11} tickLine={false} axisLine={false} />
                   <Tooltip {...chartTip} cursor={{ fill: "#141414" }} />
-                  <Bar dataKey="roas" fill="#FF3B30" />
+                  <Bar dataKey="roas" fill="#2563EB" />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -144,11 +144,11 @@ export default function Dashboard() {
             <Link
               to={c.to}
               data-testid={`quick-${c.to.slice(1)}`}
-              className="group block border border-border bg-white p-5 hover:border-[#FF3B30] transition-colors duration-200"
+              className="group block border border-border bg-white p-5 hover:border-[#2563EB] transition-colors duration-200"
             >
               <div className="flex items-start justify-between">
-                <c.icon size={24} className="text-[#FF3B30]" />
-                <ArrowUpRight size={18} className="text-zinc-500 group-hover:text-white transition-colors duration-200" />
+                <c.icon size={24} className="text-[#2563EB]" />
+                <ArrowUpRight size={18} className="text-zinc-500 group-hover:text-zinc-950 transition-colors duration-200" />
               </div>
               <div className="font-display text-lg mt-4">{c.title}</div>
               <div className="text-xs text-zinc-500 mt-1">{c.desc}</div>

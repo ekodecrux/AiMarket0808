@@ -40,7 +40,7 @@ export default function Integrations() {
           <div className="flex border border-border">
             {[["profile", "Business Profile", Buildings], ["credentials", "Credentials", PlugsConnected]].map(([id, label, Icon]) => (
               <button key={id} onClick={() => setTab(id)} data-testid={`settings-tab-${id}`}
-                className={`flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-wider transition-colors duration-200 ${tab === id ? "bg-[#FF3B30] text-white" : "text-zinc-500 hover:text-zinc-950"}`}>
+                className={`flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-wider transition-colors duration-200 ${tab === id ? "bg-[#2563EB] text-white" : "text-zinc-500 hover:text-zinc-950"}`}>
                 <Icon size={14} /> {label}
               </button>
             ))}
@@ -70,7 +70,7 @@ export default function Integrations() {
                           <div className="font-display text-base mt-3">{c.label}</div>
                           <div className="text-xs text-zinc-500 mt-1 flex-1">{c.help}</div>
                           <button onClick={() => setEditing(c)} data-testid={`configure-${c.provider}`}
-                            className="mt-4 w-full py-2 rounded-md text-xs uppercase tracking-wider border border-zinc-200 text-zinc-500 hover:border-[#FF3B30] hover:text-[#FF3B30] transition-colors duration-200">
+                            className="mt-4 w-full py-2 rounded-md text-xs uppercase tracking-wider border border-zinc-200 text-zinc-500 hover:border-[#2563EB] hover:text-[#2563EB] transition-colors duration-200">
                             Configure
                           </button>
                         </div>
@@ -136,9 +136,9 @@ function BusinessProfile({ clientId }) {
         <Section title="Prefill from Website" className="lg:col-span-1 self-start">
           <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">Website URL</label>
           <input value={form.website || ""} onChange={(e) => setForm({ ...form, website: e.target.value })} data-testid="profile-website" placeholder="yourcompany.com"
-            className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200 mb-3" />
+            className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] transition-colors duration-200 mb-3" />
           <button onClick={extract} disabled={extracting} data-testid="extract-profile-btn"
-            className="w-full flex items-center justify-center gap-2 border border-zinc-300 py-2.5 text-sm uppercase tracking-wider hover:border-[#FF3B30] hover:text-[#FF3B30] transition-colors duration-200 disabled:opacity-50">
+            className="w-full flex items-center justify-center gap-2 border border-zinc-300 py-2.5 text-sm uppercase tracking-wider hover:border-[#2563EB] hover:text-[#2563EB] transition-colors duration-200 disabled:opacity-50">
             <Sparkle size={15} weight="fill" /> {extracting ? "Extracting" : "Auto-Fill Profile"}
           </button>
           <p className="text-xs text-zinc-500 mt-3">We fetch your site and let AI extract your company name, description, industry and suggested currency.</p>
@@ -151,25 +151,25 @@ function BusinessProfile({ clientId }) {
             <div className="sm:col-span-2">
               <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">Description</label>
               <textarea rows={3} value={form.description || ""} onChange={(e) => setForm({ ...form, description: e.target.value })} data-testid="profile-description"
-                className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200 resize-none" />
+                className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] transition-colors duration-200 resize-none" />
             </div>
             <div>
               <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2 flex items-center gap-1"><Globe size={12} /> Location</label>
               <select value={form.country || "United States"} onChange={(e) => setForm({ ...form, country: e.target.value })} data-testid="profile-country"
-                className="w-full bg-white border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200">
+                className="w-full bg-white border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] transition-colors duration-200">
                 {COUNTRIES.map((c) => <option key={c}>{c}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">Currency</label>
               <select value={form.currency || "USD"} onChange={(e) => setForm({ ...form, currency: e.target.value })} data-testid="profile-currency"
-                className="w-full bg-white border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200">
+                className="w-full bg-white border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] transition-colors duration-200">
                 {CURRENCIES.map((c) => <option key={c}>{c}</option>)}
               </select>
             </div>
           </div>
           <button onClick={save} disabled={busy} data-testid="save-profile-btn"
-            className="mt-5 flex items-center justify-center gap-2 bg-[#FF3B30] text-white px-5 py-2.5 text-sm uppercase tracking-wider hover:bg-[#D63026] disabled:opacity-50 transition-colors duration-200">
+            className="mt-5 flex items-center justify-center gap-2 bg-[#2563EB] text-white px-5 py-2.5 text-sm uppercase tracking-wider hover:bg-[#1D4ED8] disabled:opacity-50 transition-colors duration-200">
             {busy ? "Saving" : "Save Profile"}
           </button>
         </Section>
@@ -183,7 +183,7 @@ function Field({ label, value, onChange, testid }) {
     <div>
       <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">{label}</label>
       <input value={value || ""} onChange={(e) => onChange(e.target.value)} data-testid={testid}
-        className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200" />
+        className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] transition-colors duration-200" />
     </div>
   );
 }
@@ -218,7 +218,7 @@ function ConfigModal({ conn, clientId, onClose, onSaved }) {
                 <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">{f.replace(/_/g, " ")}{stored?.set && <span className="text-[#34C759] ml-2 lowercase tracking-normal">saved {stored.hint}</span>}</label>
                 <input type="password" placeholder={stored?.set ? "•••• (leave blank to keep)" : "Enter value"} value={values[f] || ""}
                   onChange={(e) => setValues({ ...values, [f]: e.target.value })} data-testid={`cred-${conn.provider}-${f}`}
-                  className="w-full bg-white border border-zinc-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200 font-mono" />
+                  className="w-full bg-white border border-zinc-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] transition-colors duration-200 font-mono" />
               </div>
             );
           })}
@@ -226,7 +226,7 @@ function ConfigModal({ conn, clientId, onClose, onSaved }) {
         </div>
         <div className="px-5 py-4 border-t border-border flex justify-end gap-3">
           <button onClick={onClose} className="px-4 py-2 text-sm border border-zinc-200 rounded-md hover:border-zinc-400 transition-colors duration-200">Cancel</button>
-          <button onClick={save} disabled={busy} data-testid="save-connection-btn" className="px-4 py-2 text-sm rounded-md bg-[#FF3B30] text-white hover:bg-[#D63026] disabled:opacity-50 transition-colors duration-200">{busy ? "Saving" : "Save Encrypted"}</button>
+          <button onClick={save} disabled={busy} data-testid="save-connection-btn" className="px-4 py-2 text-sm rounded-md bg-[#2563EB] text-white hover:bg-[#1D4ED8] disabled:opacity-50 transition-colors duration-200">{busy ? "Saving" : "Save Encrypted"}</button>
         </div>
       </div>
     </div>

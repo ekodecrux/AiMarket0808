@@ -5,7 +5,7 @@ export const PageHeader = ({ overline, title, description, action }) => (
   <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
     <div>
       {overline && (
-        <div className="text-xs font-bold uppercase tracking-[0.2em] text-[#FF3B30] mb-2">
+        <div className="text-xs font-bold uppercase tracking-[0.2em] text-[#2563EB] mb-2">
           {overline}
         </div>
       )}
@@ -26,7 +26,7 @@ export const SimBadge = ({ label = "Simulated Data" }) => (
 export const StatCard = ({ label, value, sub, accent }) => (
   <div className="p-5 border-r border-b border-border" data-testid={`stat-${label?.toLowerCase().replace(/\s+/g, "-")}`}>
     <div className="text-xs uppercase tracking-[0.15em] text-zinc-500 mb-3">{label}</div>
-    <div className={`font-mono text-3xl tracking-tighter ${accent ? "text-[#FF3B30]" : "text-white"}`}>
+    <div className={`font-mono text-3xl tracking-tighter ${accent ? "text-[#2563EB]" : "text-zinc-950"}`}>
       {value}
     </div>
     {sub && <div className="text-xs text-zinc-500 mt-2">{sub}</div>}
@@ -35,7 +35,7 @@ export const StatCard = ({ label, value, sub, accent }) => (
 
 export const Loader = ({ label = "AI is working" }) => (
   <div className="flex items-center gap-3 text-zinc-500 text-sm py-8">
-    <CircleNotch size={18} className="animate-spin text-[#FF3B30]" />
+    <CircleNotch size={18} className="animate-spin text-[#2563EB]" />
     <span className="font-mono tracking-tight">{label}...</span>
   </div>
 );

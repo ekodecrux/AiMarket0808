@@ -16,7 +16,7 @@ export default function CompetitorRadar() {
           <div className="flex border border-border">
             {[["competitors", "Competitors", Crosshair], ["trends", "Trend Discovery", TrendUp]].map(([id, label, Icon]) => (
               <button key={id} onClick={() => setTab(id)} data-testid={`radar-tab-${id}`}
-                className={`flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-wider transition-colors duration-200 ${tab === id ? "bg-[#FF3B30] text-white" : "text-zinc-500 hover:text-white"}`}>
+                className={`flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-wider transition-colors duration-200 ${tab === id ? "bg-[#2563EB] text-white" : "text-zinc-500 hover:text-zinc-950"}`}>
                 <Icon size={14} /> {label}
               </button>
             ))}
@@ -44,7 +44,7 @@ function Competitors() {
     <div>
       <div className="flex justify-end mb-6">
         <button onClick={() => setShowForm(true)} data-testid="add-competitor-btn"
-          className="flex items-center gap-2 bg-[#FF3B30] text-white px-4 py-2.5 text-sm uppercase tracking-wider hover:bg-[#D63026] transition-colors duration-200">
+          className="flex items-center gap-2 bg-[#2563EB] text-white px-4 py-2.5 text-sm uppercase tracking-wider hover:bg-[#1D4ED8] transition-colors duration-200">
           <Plus size={16} /> Track Competitor
         </button>
       </div>
@@ -65,10 +65,10 @@ function Competitors() {
                     </div>
                     <div className="flex items-center gap-2">
                       <button onClick={() => rescan(c.id)} disabled={rescanning === c.id} data-testid={`rescan-${c.id}`}
-                        className="flex items-center gap-1 text-xs border border-zinc-200 px-3 py-1.5 hover:border-[#FF3B30] hover:text-[#FF3B30] transition-colors duration-200 disabled:opacity-40">
+                        className="flex items-center gap-1 text-xs border border-zinc-200 px-3 py-1.5 hover:border-[#2563EB] hover:text-[#2563EB] transition-colors duration-200 disabled:opacity-40">
                         <ArrowsClockwise size={14} className={rescanning === c.id ? "animate-spin" : ""} /> {rescanning === c.id ? "Scanning" : "Rescan"}
                       </button>
-                      <button onClick={() => del(c.id)} className="text-zinc-500 hover:text-[#FF3B30] transition-colors duration-200"><Trash size={16} /></button>
+                      <button onClick={() => del(c.id)} className="text-zinc-500 hover:text-[#2563EB] transition-colors duration-200"><Trash size={16} /></button>
                     </div>
                   </div>
                   <div className="p-5 space-y-4">
@@ -83,8 +83,8 @@ function Competitors() {
                       {a.products?.length > 0 && <Chips title="Products" items={a.products} color="#007AFF" />}
                     </div>
                     {a.counter_strategy && (
-                      <div className="mt-2 border-l-2 border-[#FF3B30] bg-[#FF3B30]/5 px-4 py-3">
-                        <div className="text-xs uppercase tracking-wider text-[#FF3B30] mb-1">How to Win</div>
+                      <div className="mt-2 border-l-2 border-[#2563EB] bg-[#2563EB]/5 px-4 py-3">
+                        <div className="text-xs uppercase tracking-wider text-[#2563EB] mb-1">How to Win</div>
                         <div className="text-sm text-zinc-700">{a.counter_strategy}</div>
                       </div>
                     )}
@@ -118,22 +118,22 @@ function CompForm({ onClose, onSaved }) {
       <div className="bg-white border border-border w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h3 className="font-display text-lg">Track Competitor</h3>
-          <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors duration-200"><X size={20} /></button>
+          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-950 transition-colors duration-200"><X size={20} /></button>
         </div>
         <div className="p-5 space-y-4">
           <div>
             <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">Competitor Name</label>
             <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="competitor-name"
-              className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200" />
+              className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] transition-colors duration-200" />
           </div>
           <div>
             <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">Website URL</label>
             <input value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} data-testid="competitor-url" placeholder="competitor.com"
-              className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200" />
+              className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] transition-colors duration-200" />
           </div>
           <p className="text-xs text-zinc-500">NEXUS fetches the live site and analyzes it with AI. Takes ~10-25s.</p>
           <button onClick={submit} disabled={busy} data-testid="save-competitor-btn"
-            className="w-full flex items-center justify-center gap-2 bg-[#FF3B30] text-white py-3 text-sm uppercase tracking-wider hover:bg-[#D63026] disabled:opacity-50 transition-colors duration-200">
+            className="w-full flex items-center justify-center gap-2 bg-[#2563EB] text-white py-3 text-sm uppercase tracking-wider hover:bg-[#1D4ED8] disabled:opacity-50 transition-colors duration-200">
             <Sparkle size={16} weight="fill" /> {busy ? "Analyzing" : "Analyze"}
           </button>
         </div>
@@ -160,9 +160,9 @@ function Trends() {
       <Section title="Discover Trends" className="lg:col-span-1 self-start">
         <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">Industry / Topic</label>
         <input value={industry} onChange={(e) => setIndustry(e.target.value)} data-testid="trend-industry" placeholder="e.g. Fintech, B2B SaaS"
-          className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200 mb-4" />
+          className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] transition-colors duration-200 mb-4" />
         <button onClick={run} disabled={busy} data-testid="discover-trends-btn"
-          className="w-full flex items-center justify-center gap-2 bg-[#FF3B30] text-white py-3 text-sm uppercase tracking-wider hover:bg-[#D63026] disabled:opacity-50 transition-colors duration-200">
+          className="w-full flex items-center justify-center gap-2 bg-[#2563EB] text-white py-3 text-sm uppercase tracking-wider hover:bg-[#1D4ED8] disabled:opacity-50 transition-colors duration-200">
           <TrendUp size={16} /> {busy ? "Scanning news" : "Discover"}
         </button>
         <p className="text-xs text-zinc-500 mt-3">Pulls real Google News headlines and analyzes them with AI.</p>
@@ -181,7 +181,7 @@ function Trends() {
               <Section title="Trending Topics">
                 <div className="space-y-3">{data.trending_topics.map((t, i) => (
                   <div key={i} className="border border-zinc-200 p-3">
-                    <div className="text-sm text-white">{t.topic}</div>
+                    <div className="text-sm text-zinc-950">{t.topic}</div>
                     <div className="text-xs text-zinc-500 mt-1">{t.why_it_matters}</div>
                   </div>
                 ))}</div>
@@ -192,12 +192,12 @@ function Trends() {
               {data.hashtags?.length > 0 && <Section title="Hashtags"><div className="flex flex-wrap gap-2">{data.hashtags.map((h, i) => <span key={i} className="text-xs font-mono text-[#007AFF] border border-[#007AFF]/30 px-2 py-1">{h}</span>)}</div></Section>}
             </div>
             {data.content_opportunities?.length > 0 && (
-              <Section title="Content Opportunities"><ul className="space-y-2">{data.content_opportunities.map((o, i) => <li key={i} className="text-sm text-zinc-700 flex gap-2"><span className="text-[#FF3B30]">→</span> {o}</li>)}</ul></Section>
+              <Section title="Content Opportunities"><ul className="space-y-2">{data.content_opportunities.map((o, i) => <li key={i} className="text-sm text-zinc-700 flex gap-2"><span className="text-[#2563EB]">→</span> {o}</li>)}</ul></Section>
             )}
             {data.sources?.length > 0 && (
               <Section title="Live Sources">
                 <div className="space-y-2">{data.sources.map((s, i) => (
-                  <a key={i} href={s.link} target="_blank" rel="noreferrer" className="block text-xs text-zinc-500 hover:text-white transition-colors duration-200 truncate" data-testid={`trend-source-${i}`}>
+                  <a key={i} href={s.link} target="_blank" rel="noreferrer" className="block text-xs text-zinc-500 hover:text-zinc-950 transition-colors duration-200 truncate" data-testid={`trend-source-${i}`}>
                     · {s.title} <span className="text-zinc-500">{s.source && `— ${s.source}`}</span>
                   </a>
                 ))}</div>
