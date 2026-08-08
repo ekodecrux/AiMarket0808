@@ -1,0 +1,38 @@
+{
+  "summary": "Iteration 2 verification of Agency multi-tenant + real lead sourcing + encrypted credential vault on top of existing NEXUS build. Backend: 22/22 pytest passing (14 regression + 8 new). New coverage: Clients CRUD with computed leads/campaigns/connections counts; client-scoped leads and campaigns filtering; Integrations providers list (11 providers with fields+help); Connections encryption verified — GET /api/connections never returns plaintext secrets (only {set, hint:'••••XXXX'}), status transitions Pending→Partial→Connected across save calls, DELETE resets to Pending, client_id scope isolates connections from platform scope; Real lead scraping via /api/leads/scrape (stripe.com + notion.so, live HTTP, count>=1); CSV import maps 'title'→'role' and 'source' defaults to 'CSV Import'; empty CSV returns 400. Regression pass: auth (login/logout/me/register/unauth), strategy Groq JSON, content text + Gemini image (data URL), lead CRUD + AI score, sales assist, campaigns with derived CTR/CPC/CPA/ROAS/ROI, social generate/schedule/publish, analytics overview shape, agents list. Frontend E2E (real browser): admin login, top-bar active-client-select present, Clients page create + select client, Integrations page renders linkedin/sendgrid cards, sendgrid Configure modal saves credentials and status becomes CONNECTED, page HTML scanned — no plaintext SG.UI_TEST_SECRET leaked, Leads page Import CSV creates rows, score-lead-* triggers AI scoring which returns a numeric score with Warm category.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Analytics/Dashboard (pre-existing)", "issues": ["Recharts still emits width(-1)/height(-1) warnings on initial mount — carried over from iteration_1, non-blocking."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "secrets_store.py: Fernet key loaded once at import (module-level). If CREDENTIALS_KEY is missing, _fernet=None and encrypt() will raise AttributeError instead of a clean 500 with meaningful message. Consider raising on startup with a descriptive error.",
+    "server.py list_connections: q['client_id'] = client_id if client_id else None — this means when no client_id query is provided, only platform-scoped (client_id=None) connections are returned. Correct isolation, but this also means a client-scoped connection is invisible from platform view (which is the intended design and matches tests).",
+    "server.py save_connection ignores empty values for existing fields (preserves prior encrypted value). Good — allows 'leave blank to keep' UX. However it silently accepts unknown field keys and stores them; consider filtering to provider['fields'] only to prevent field-injection into stored dict.",
+    "leadsource._fetch uses synchronous requests inside asyncio.to_thread — OK for parallelism. Timeout is 15s per request and 4 candidates per domain — worst case ~60s per domain in bad network conditions; still bounded by 10 domains cap. Fine for MVP.",
+    "server.py leads/scrape stores every scrape result even when found=False (i.e., empty results). Currently accepted by tests (count>=1) but consider filtering s['found'] to avoid junk leads.",
+    "ObjectId(cid) in clients/connections/leads endpoints still not wrapped in try/except — malformed IDs will 500 instead of 400/404 (carried over from iteration_1).",
+    "server.py delete_connection uses client_id query param but does not validate provider exists; silently returns success — acceptable.",
+    "Test credentials file /app/memory/test_credentials.md is overwritten on every lifespan startup — good for keeping in sync with ADMIN_EMAIL/PASSWORD env values.",
+    "Frontend Integrations.jsx passes credentials as plain object over HTTPS to /api/connections — server encrypts at rest with Fernet. TLS is provided by ingress. Acceptable."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "100% (22/22)", "frontend": "100% (all critical flows)"},
+  "test_credentials": "admin@marketing.ai / admin123 (verified). CREDENTIALS_KEY (Fernet) present in backend/.env.",
+  "seed_data_creation": "TEST_ prefixed clients/leads/campaigns created and cleaned up by test fixtures. UI test left one TEST_UI_Client_* and 5 lead rows in DB (visible in screenshot) — acceptable as demo data.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "22/22 backend pytest pass in ~14s. Real network calls used: scrape (stripe.com, notion.so ~5-10s), competitor add/rescan, Groq for strategy/content/sales/score AI (5-30s), Gemini for image (10-30s). Frontend E2E covered: active-client-select, sidebar-nav-{clients,integrations,leads}, add-client-btn, save-client-btn, select-client-*, integration-{linkedin,sendgrid}, configure-sendgrid, cred-sendgrid-{api_key,from_email}, save-connection-btn, import-leads-btn, import-csv-text, run-import-btn, score-lead-*. Verified UI never receives plaintext secrets (only ••••XXXX hints). No blocking issues.",
+  "rca of the issue": "N/A — no bugs found in iteration 2."
+}

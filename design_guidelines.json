@@ -1,0 +1,148 @@
+{
+  "theme": "dark",
+  "persona_and_vibe": "Premium Enterprise-SaaS / Command Center. Precision, Authority, Futuristic but Grounded. 'Swiss Brutalist' mixed with 'Old Money Tech'. Data-dense, analytical, and highly structured. Absolutely NO generic 'AI-slop' purple gradients.",
+  "typography": {
+    "headings": {
+      "font": "Cabinet Grotesk",
+      "weights": ["300", "500", "700", "900"],
+      "tracking": "tracking-tight",
+      "usage": "Use for all main dashboard titles, module names, and hero numbers. Use lighter weights for large sizes."
+    },
+    "body": {
+      "font": "IBM Plex Sans",
+      "weights": ["400", "500"],
+      "tracking": "tracking-normal",
+      "usage": "Use for all data tables, paragraphs, forms, and general UI text."
+    },
+    "mono": {
+      "font": "JetBrains Mono",
+      "weights": ["400", "700"],
+      "tracking": "tracking-tight",
+      "usage": "Use for KPI numbers, financial data, code snippets, or 'agent status' logs."
+    },
+    "hierarchy": {
+      "h1": "text-4xl sm:text-5xl font-light tracking-tight",
+      "h2": "text-2xl sm:text-3xl font-medium tracking-tight",
+      "h3": "text-lg sm:text-xl font-medium",
+      "overline": "text-xs font-bold uppercase tracking-[0.2em] text-zinc-500",
+      "body": "text-sm text-zinc-300",
+      "kpi": "text-3xl font-mono tracking-tighter"
+    }
+  },
+  "colors": {
+    "archetype": "Swiss & High-Contrast (Authority, Clarity, Truth)",
+    "palette": {
+      "background": "#050505",
+      "surface": "#0F0F0F",
+      "surface_hover": "#1A1A1A",
+      "border": "#27272A",
+      "border_focus": "#FF3B30",
+      "text_primary": "#FFFFFF",
+      "text_secondary": "#A1A1AA",
+      "text_muted": "#52525B",
+      "accent_primary": "#FF3B30",
+      "accent_primary_hover": "#D63026",
+      "accent_secondary": "#007AFF",
+      "success": "#34C759",
+      "warning": "#FFCC00",
+      "error": "#FF3B30",
+      "forbidden": ["#7351B7", "#1B93A4", "Any generic purple/teal gradients"]
+    },
+    "rules": [
+      "95% of the UI should be monochrome. Color exists ONLY to guide action or indicate status.",
+      "Never use pure black #000000. Base background is #050505.",
+      "Use 'Electric Blaze' (#FF3B30) as the primary kinetic trigger (buttons, active states).",
+      "Ensure all text meets at least 4.5:1 contrast ratio."
+    ]
+  },
+  "visual_enhancers": {
+    "surfaces": "Grid Borders (The Technical Look). Container uses border-collapse style layout. Items have subtle borders on right and bottom.",
+    "radius": "Minimal. Use rounded-none or max rounded-sm (2px to 4px). No pill shapes for standard cards, keeping it sharp and technical.",
+    "shadows": "Remove all soft drop shadows. Rely entirely on 1px borders (border-border) for definition. Use a stark 1px solid stroke or 2px inner glow for highlights.",
+    "textures": "Subtle noise overlay (opacity 2-3%) on the main background to prevent 'digital flatness'."
+  },
+  "grids_and_layouts": {
+    "sidebar": "Collapsible left navigation panel. Fixed width (e.g., w-64). Darker than main content area (#050505). Active states indicated by a sharp 2px left border in accent_primary.",
+    "dashboard_grid": "Bento Grid Protocol Mode B (High Density). grid-cols-1 md:grid-cols-3 lg:grid-cols-4 or 12-col base. Tight gaps (gap-4 or gap-6).",
+    "cards": "Cardless aesthetic. Sections are defined by exposed grid borders, not floating floating containers.",
+    "spacing": "Dense internal spacing for data components (p-3, p-4), but generous spacing between major layout regions (p-8, p-12). Containers with borders MUST have internal padding."
+  },
+  "components": {
+    "general": "Use Shadcn components but heavily strip default Vercel-like styling. Make them flat, sharp-edged, and bordered.",
+    "buttons": "Sharp corners (rounded-none). Primary: bg-[#FF3B30] text-white hover:bg-[#D63026]. Secondary: bg-transparent border border-zinc-700 hover:border-zinc-500 hover:bg-zinc-900.",
+    "tables": "Dense rows. text-sm body. Use Monospace for numbers. border-b border-zinc-800 for row dividers.",
+    "charts": "Recharts. Use monochrome lines (zinc-300) with a single vibrant color (like #FF3B30) for the primary data series. Remove background grid lines or make them extremely subtle (zinc-900). No gradient fills under lines.",
+    "forms": "Inputs have border-zinc-800, bg-transparent. On focus: ring-0 border-[#FF3B30].",
+    "icons": "Phosphor Icons (@phosphor-icons/react) for a dense, highly legible, technical look."
+  },
+  "motion": {
+    "philosophy": "Minimalist, mechanical, and instantaneous. Micro-interactions for feedback, not decoration.",
+    "interactions": "Hover states must explicitly change text color and border color.",
+    "transitions": "Use specific properties. transition-colors duration-200 ease-out.",
+    "data_loading": "Use Skeleton loaders (Shadcn) matched exactly to the component dimensions. Staggered fade-ins for list items."
+  },
+  "accessibility": {
+    "focus": "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#FF3B30] focus-visible:border-transparent",
+    "contrast": "Normal text min 4.5:1. Use Text Shadow over any images.",
+    "testing": "All interactive elements MUST include data-testid (e.g., data-testid='sidebar-nav-strategy')."
+  },
+  "media": {
+    "images": {
+      "strategy": "Minimal use of images. Data is the hero. Use abstract visualizations or sharp portraits when necessary.",
+      "overlays": "If an image is used as a background, max overlay opacity bg-black/50."
+    }
+  },
+  "image_urls": {
+    "professional_headshots": [
+      {
+        "url": "https://images.pexels.com/photos/29852852/pexels-photo-29852852.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Elegant studio portrait of a woman with short hair against a black background.",
+        "category": "User Profile Avatar / AI Agent Persona"
+      },
+      {
+        "url": "https://images.pexels.com/photos/37148308/pexels-photo-37148308.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Confident business professional in a blue suit and tie.",
+        "category": "User Profile Avatar / Exec Dashboard Contact"
+      }
+    ],
+    "abstract_data": [
+      {
+        "url": "https://images.pexels.com/photos/27141316/pexels-photo-27141316.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Digital interface showcasing futuristic graphs in low light.",
+        "category": "AI Campaign Placeholder / Header background graphic"
+      },
+      {
+        "url": "https://images.pexels.com/photos/17279851/pexels-photo-17279851.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Vibrant digital art in red, green, and blue.",
+        "category": "Content Studio Output Placeholder"
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "You are building a data-dense Autonomous Marketing Command Center. Adhere strictly to the Swiss Brutalist/High-Contrast dark theme.",
+    "Setup Phosphor Icons via: yarn add @phosphor-icons/react",
+    "Do NOT use 'Inter' for headings. Use Cabinet Grotesk or a similar strong Grotesque. Use IBM Plex Sans for body text.",
+    "Do NOT use standard Shadcn rounded corners (e.g. rounded-lg, rounded-xl). Override everything to rounded-none or rounded-sm.",
+    "The layout must expose the grid. Use 1px borders (border-border) aggressively between sections to create a 'cockpit' feel.",
+    "Avoid any gradients in backgrounds. Rely on solid colors (#050505, #0F0F0F) and sharp borders.",
+    "Use Recharts for the Analytics Engine, Executive Dashboard, and Budget Optimizer. Style charts to be monochrome with one accent color.",
+    "Always explicitly set text colors on hover/active states.",
+    "For the left sidebar, use a persistent collapsible layout.",
+    "Make sure to implement the required modules (Marketing Strategy Generator, Content Studio, Lead Management, Analytics, etc.) as distinct views or massive bento grid segments.",
+    "Ensure all interactive elements have data-testid attributes."
+  ],
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "You tend to converge toward generic, 'on distribution' outputs. In frontend design, this creates what users call the 'AI slop' aesthetic. Avoid this.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts. Use asymmetrical or dense analytical grid layouts.",
+    "You MUST NOT apply universal transition. Eg: transition: all. Always add transitions for specific interactive elements.",
+    "You MUST NOT center align the app container. Do not add .App { text-align: center; }.",
+    "NEVER use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯 for icons. Use Phosphor Icons exclusively.",
+    "Every interaction needs micro-animations - hover states, explicit color shifts.",
+    "Use 2-3x more spacing than feels comfortable between major layout sections, but keep internal dashboard components dense.",
+    "Prioritize using pre-existing components from src/components/ui. Override Shadcn default roundedness and shadow to match the sharp aesthetic.",
+    "Use 'sonner' for toasts.",
+    "Use Shadcn calendar for date pickers, Shadcn dropdown-menu for selects.",
+    "DO NOT use complete transparent backgrounds in headers or dropdowns."
+  ]
+}
