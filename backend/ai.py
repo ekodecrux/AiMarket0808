@@ -11,10 +11,12 @@ GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
 IMAGE_MODEL = "gemini-3.1-flash-image-preview"
 
-_groq = AsyncGroq(api_key=GROQ_API_KEY)
+_groq = AsyncGroq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
 
 async def generate_text(session_id: str, system_message: str, prompt: str) -> str:
+    if _groq is None:
+        raise RuntimeError("GROQ_API_KEY is not configured; add it in the server environment before using AI generation.")
     resp = await _groq.chat.completions.create(
         model=GROQ_MODEL,
         messages=[

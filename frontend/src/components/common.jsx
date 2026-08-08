@@ -29,12 +29,12 @@ export const StatCard = ({ label, value, sub, accent }) => (
     <div className={`font-mono text-3xl tracking-tighter ${accent ? "text-[#FF3B30]" : "text-white"}`}>
       {value}
     </div>
-    {sub && <div className="text-xs text-zinc-600 mt-2">{sub}</div>}
+    {sub && <div className="text-xs text-zinc-500 mt-2">{sub}</div>}
   </div>
 );
 
 export const Loader = ({ label = "AI is working" }) => (
-  <div className="flex items-center gap-3 text-zinc-400 text-sm py-8">
+  <div className="flex items-center gap-3 text-zinc-500 text-sm py-8">
     <CircleNotch size={18} className="animate-spin text-[#FF3B30]" />
     <span className="font-mono tracking-tight">{label}...</span>
   </div>
@@ -51,9 +51,9 @@ export const Fade = ({ children, delay = 0 }) => (
 );
 
 export const Section = ({ title, children, className = "" }) => (
-  <div className={`border border-border bg-[#0A0A0A] ${className}`}>
+  <div className={`border border-border bg-white ${className}`}>
     {title && (
-      <div className="px-5 py-3 border-b border-border text-xs uppercase tracking-[0.15em] text-zinc-400">
+      <div className="px-5 py-3 border-b border-border text-xs uppercase tracking-[0.15em] text-zinc-500">
         {title}
       </div>
     )}

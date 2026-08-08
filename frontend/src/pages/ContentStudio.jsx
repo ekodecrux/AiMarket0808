@@ -23,7 +23,7 @@ export default function ContentStudio() {
                 key={id}
                 onClick={() => setTab(id)}
                 data-testid={`content-tab-${id}`}
-                className={`flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-wider transition-colors duration-200 ${tab === id ? "bg-[#FF3B30] text-white" : "text-zinc-400 hover:text-white"}`}
+                className={`flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-wider transition-colors duration-200 ${tab === id ? "bg-[#FF3B30] text-white" : "text-zinc-500 hover:text-white"}`}
               >
                 <Icon size={14} /> {label}
               </button>
@@ -63,7 +63,7 @@ function TextStudio() {
             <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">Topic</label>
             <textarea rows={3} value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })} data-testid="content-topic"
               placeholder="What should the AI write about?"
-              className="w-full bg-transparent border border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200 resize-none" />
+              className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200 resize-none" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <SelectField label="Tone" value={form.tone} options={TONES} onChange={(v) => setForm({ ...form, tone: v })} testid="content-tone" />
@@ -72,7 +72,7 @@ function TextStudio() {
           <div>
             <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">Keywords (optional)</label>
             <input value={form.keywords} onChange={(e) => setForm({ ...form, keywords: e.target.value })} data-testid="content-keywords"
-              className="w-full bg-transparent border border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200" />
+              className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200" />
           </div>
           <button onClick={generate} disabled={busy} data-testid="generate-content-btn"
             className="w-full flex items-center justify-center gap-2 bg-[#FF3B30] text-white py-3 text-sm uppercase tracking-wider hover:bg-[#D63026] disabled:opacity-50 transition-colors duration-200">
@@ -83,7 +83,7 @@ function TextStudio() {
 
       <div className="lg:col-span-2">
         {busy && <Section><Loader label="Content Agent is writing" /></Section>}
-        {!busy && !result && <Section><div className="text-center py-16 text-zinc-600"><PenNib size={40} className="mx-auto mb-4 text-zinc-700" /><div className="text-sm">Generated copy appears here.</div></div></Section>}
+        {!busy && !result && <Section><div className="text-center py-16 text-zinc-500"><PenNib size={40} className="mx-auto mb-4 text-zinc-700" /><div className="text-sm">Generated copy appears here.</div></div></Section>}
         {result && !result._error && (
           <Fade><div className="space-y-4">
             <Section title="Generated Content">
@@ -91,19 +91,19 @@ function TextStudio() {
                 <h3 className="font-display text-xl">{result.title}</h3>
                 <button onClick={() => copy(`${result.title}\n\n${result.body}`)} data-testid="copy-content-btn" className="text-zinc-500 hover:text-white transition-colors duration-200"><Copy size={18} /></button>
               </div>
-              <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed mt-4">{result.body}</p>
+              <p className="text-sm text-zinc-700 whitespace-pre-wrap leading-relaxed mt-4">{result.body}</p>
               {result.cta && <div className="mt-4 pt-4 border-t border-border text-sm"><span className="text-zinc-500 uppercase text-xs tracking-wider">CTA · </span>{result.cta}</div>}
             </Section>
             {(result.hashtags?.length || result.seo_keywords?.length) && (
               <Section title="SEO & Distribution">
                 {result.hashtags?.length > 0 && <div className="flex flex-wrap gap-2 mb-3">{result.hashtags.map((h, i) => <span key={i} className="text-xs font-mono text-[#007AFF] border border-[#007AFF]/30 px-2 py-1">{h}</span>)}</div>}
-                {result.seo_keywords?.length > 0 && <div className="flex flex-wrap gap-2">{result.seo_keywords.map((k, i) => <span key={i} className="text-xs font-mono text-zinc-400 border border-zinc-800 px-2 py-1">{k}</span>)}</div>}
+                {result.seo_keywords?.length > 0 && <div className="flex flex-wrap gap-2">{result.seo_keywords.map((k, i) => <span key={i} className="text-xs font-mono text-zinc-500 border border-zinc-200 px-2 py-1">{k}</span>)}</div>}
                 {result.meta_description && <p className="text-xs text-zinc-500 mt-3"><span className="uppercase tracking-wider">Meta · </span>{result.meta_description}</p>}
               </Section>
             )}
           </div></Fade>
         )}
-        {result?._error && <Section title="Raw Output"><pre className="text-xs text-zinc-400 whitespace-pre-wrap">{result._raw}</pre></Section>}
+        {result?._error && <Section title="Raw Output"><pre className="text-xs text-zinc-500 whitespace-pre-wrap">{result._raw}</pre></Section>}
       </div>
     </div>
   );
@@ -138,18 +138,18 @@ function ImageStudio() {
             <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">Describe your creative</label>
             <textarea rows={4} value={prompt} onChange={(e) => setPrompt(e.target.value)} data-testid="image-prompt"
               placeholder="e.g. A bold banner for a Black Friday SaaS sale with abstract red geometry"
-              className="w-full bg-transparent border border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200 resize-none" />
+              className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200 resize-none" />
           </div>
           <div>
             <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">Style</label>
             <input value={style} onChange={(e) => setStyle(e.target.value)} data-testid="image-style"
-              className="w-full bg-transparent border border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200" />
+              className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200" />
           </div>
           <button onClick={generate} disabled={busy} data-testid="generate-image-btn"
             className="w-full flex items-center justify-center gap-2 bg-[#FF3B30] text-white py-3 text-sm uppercase tracking-wider hover:bg-[#D63026] disabled:opacity-50 transition-colors duration-200">
             <Sparkle size={16} weight="fill" /> {busy ? "Rendering" : "Generate Creative"}
           </button>
-          <p className="text-xs text-zinc-600">Powered by Gemini Nano Banana. Rendering can take ~10-20s.</p>
+          <p className="text-xs text-zinc-500">Powered by Gemini Nano Banana. Rendering can take ~10-20s.</p>
         </div>
       </Section>
 
@@ -158,14 +158,14 @@ function ImageStudio() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-0">
           {gallery.map((g) => (
             <Fade key={g.id}>
-              <div className="border border-border bg-[#0A0A0A]">
+              <div className="border border-border bg-white">
                 <img src={g.result.image_url} alt={g.topic} className="w-full aspect-square object-cover" data-testid={`creative-${g.id}`} />
                 <div className="p-3 text-xs text-zinc-500 truncate">{g.topic}</div>
               </div>
             </Fade>
           ))}
         </div>
-        {!busy && gallery.length === 0 && <Section><div className="text-center py-16 text-zinc-600"><ImageIcon size={40} className="mx-auto mb-4 text-zinc-700" /><div className="text-sm">Your generated creatives appear here.</div></div></Section>}
+        {!busy && gallery.length === 0 && <Section><div className="text-center py-16 text-zinc-500"><ImageIcon size={40} className="mx-auto mb-4 text-zinc-700" /><div className="text-sm">Your generated creatives appear here.</div></div></Section>}
       </div>
     </div>
   );
@@ -176,8 +176,8 @@ function SelectField({ label, value, options, onChange, testid }) {
     <div>
       <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">{label}</label>
       <select value={value} onChange={(e) => onChange(e.target.value)} data-testid={testid}
-        className="w-full bg-[#0A0A0A] border border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200">
-        {options.map((o) => <option key={o} value={o} className="bg-[#0A0A0A]">{o}</option>)}
+        className="w-full bg-white border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200">
+        {options.map((o) => <option key={o} value={o} className="bg-white">{o}</option>)}
       </select>
     </div>
   );

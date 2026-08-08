@@ -51,19 +51,19 @@ export default function BudgetPlanner() {
               <div>
                 <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">Total Budget ({currency})</label>
                 <input type="number" value={form.total_budget} onChange={(e) => setForm({ ...form, total_budget: e.target.value })} data-testid="budget-total"
-                  className="w-full bg-transparent border border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200" />
+                  className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200" />
               </div>
               <div>
                 <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">Period</label>
                 <select value={form.period} onChange={(e) => setForm({ ...form, period: e.target.value })} data-testid="budget-period"
-                  className="w-full bg-[#0A0A0A] border border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200">
+                  className="w-full bg-white border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200">
                   {PERIODS.map((p) => <option key={p}>{p}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">Primary Goal</label>
                 <input value={form.primary_goal} onChange={(e) => setForm({ ...form, primary_goal: e.target.value })} data-testid="budget-goal"
-                  className="w-full bg-transparent border border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200" />
+                  className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200" />
               </div>
               <button onClick={generate} disabled={busy} data-testid="generate-budget-btn"
                 className="w-full flex items-center justify-center gap-2 bg-[#FF3B30] text-white py-3 text-sm uppercase tracking-wider hover:bg-[#D63026] disabled:opacity-50 transition-colors duration-200">
@@ -75,7 +75,7 @@ export default function BudgetPlanner() {
 
         <div className="lg:col-span-2">
           {busy && <Section><Loader label="Budget Agent is optimizing allocation" /></Section>}
-          {!busy && !plan && <Section><div className="text-center py-16 text-zinc-600"><ChartPieSlice size={40} className="mx-auto mb-4 text-zinc-700" /><div className="text-sm">Your SEO-led budget allocation will appear here.</div></div></Section>}
+          {!busy && !plan && <Section><div className="text-center py-16 text-zinc-500"><ChartPieSlice size={40} className="mx-auto mb-4 text-zinc-700" /><div className="text-sm">Your SEO-led budget allocation will appear here.</div></div></Section>}
           {plan && !plan._error && <PlanView plan={plan} format={format} />}
         </div>
       </div>
@@ -92,14 +92,14 @@ function PlanView({ plan, format }) {
   return (
     <Fade><div className="space-y-6">
       <Section title="Strategy">
-        <p className="text-sm text-zinc-300 leading-relaxed">{plan.strategy_summary}</p>
-        {plan.philosophy && <div className="mt-3 border-l-2 border-[#34C759] bg-[#34C759]/5 px-4 py-3 text-sm text-zinc-300"><TreeStructure size={14} className="inline mr-2 text-[#34C759]" />{plan.philosophy}</div>}
+        <p className="text-sm text-zinc-700 leading-relaxed">{plan.strategy_summary}</p>
+        {plan.philosophy && <div className="mt-3 border-l-2 border-[#34C759] bg-[#34C759]/5 px-4 py-3 text-sm text-zinc-700"><TreeStructure size={14} className="inline mr-2 text-[#34C759]" />{plan.philosophy}</div>}
       </Section>
 
       <div className="grid grid-cols-3 border-t border-l border-border">
         <div className="p-5 border-r border-b border-border"><div className="text-xs uppercase tracking-wider text-zinc-500 mb-2">SEO / Organic</div><div className="font-mono text-3xl text-[#34C759]">{split[0].value}%</div></div>
         <div className="p-5 border-r border-b border-border"><div className="text-xs uppercase tracking-wider text-zinc-500 mb-2">Paid Support</div><div className="font-mono text-3xl text-[#FF3B30]">{split[1].value}%</div></div>
-        <div className="p-5 border-r border-b border-border"><div className="text-xs uppercase tracking-wider text-zinc-500 mb-2">Est. Leads</div><div className="font-mono text-3xl">{plan.expected_total_leads ?? "—"}</div><div className="text-xs text-zinc-600 mt-1">CAC {plan.blended_cac ? format(plan.blended_cac) : "—"}</div></div>
+        <div className="p-5 border-r border-b border-border"><div className="text-xs uppercase tracking-wider text-zinc-500 mb-2">Est. Leads</div><div className="font-mono text-3xl">{plan.expected_total_leads ?? "—"}</div><div className="text-xs text-zinc-500 mt-1">CAC {plan.blended_cac ? format(plan.blended_cac) : "—"}</div></div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -126,12 +126,12 @@ function PlanView({ plan, format }) {
                 <div className="flex justify-between text-sm mb-1">
                   <span className="flex items-center gap-2">
                     <span className={`w-1.5 h-1.5 ${a.type === "Organic" ? "bg-[#34C759]" : "bg-[#FF3B30]"}`} />
-                    {a.channel} <span className="text-[10px] uppercase text-zinc-600">{a.type}</span>
+                    {a.channel} <span className="text-[10px] uppercase text-zinc-500">{a.type}</span>
                   </span>
                   <span className="font-mono">{format(a.amount)} · {a.pct}%</span>
                 </div>
-                <div className="h-1.5 bg-[#141414]"><div className="h-full" style={{ width: `${a.pct}%`, background: a.type === "Organic" ? "#34C759" : "#FF3B30" }} /></div>
-                {a.rationale && <div className="text-xs text-zinc-600 mt-1">{a.rationale} {a.expected_leads ? `· ~${a.expected_leads} leads` : ""}</div>}
+                <div className="h-1.5 bg-zinc-100"><div className="h-full" style={{ width: `${a.pct}%`, background: a.type === "Organic" ? "#34C759" : "#FF3B30" }} /></div>
+                {a.rationale && <div className="text-xs text-zinc-500 mt-1">{a.rationale} {a.expected_leads ? `· ~${a.expected_leads} leads` : ""}</div>}
               </div>
             ))}
           </div>

@@ -18,9 +18,9 @@ export default function Agents() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
           {agents.map((a, i) => (
             <Fade key={a.name} delay={i * 0.03}>
-              <div className="bg-[#0A0A0A] p-6 h-full hover:bg-[#0F0F0F] transition-colors duration-200" data-testid={`agent-${a.name.replace(/\s+/g, "-").toLowerCase()}`}>
+              <div className="bg-white p-6 h-full hover:bg-zinc-50 transition-colors duration-200" data-testid={`agent-${a.name.replace(/\s+/g, "-").toLowerCase()}`}>
                 <div className="flex items-start justify-between">
-                  <div className="w-10 h-10 border border-zinc-800 flex items-center justify-center">
+                  <div className="w-10 h-10 border border-zinc-200 flex items-center justify-center">
                     <Robot size={20} className="text-[#FF3B30]" />
                   </div>
                   <div className="flex items-center gap-1.5">

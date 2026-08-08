@@ -27,12 +27,12 @@ export default function Flow() {
       />
 
       <Fade>
-        <div className="border border-border bg-[#0A0A0A] p-5 mb-8">
+        <div className="border border-border bg-white p-5 mb-8">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs uppercase tracking-[0.15em] text-zinc-400 flex items-center gap-2"><Path size={16} className="text-[#FF3B30]" /> Pipeline Progress</span>
+            <span className="text-xs uppercase tracking-[0.15em] text-zinc-500 flex items-center gap-2"><Path size={16} className="text-[#FF3B30]" /> Pipeline Progress</span>
             <span className="font-mono text-sm">{data.completed}/{data.total} · {pct}%</span>
           </div>
-          <div className="h-2 bg-[#141414]"><div className="h-full bg-[#FF3B30] transition-all duration-500" style={{ width: `${pct}%` }} /></div>
+          <div className="h-2 bg-zinc-100"><div className="h-full bg-[#FF3B30] transition-all duration-500" style={{ width: `${pct}%` }} /></div>
         </div>
       </Fade>
 
@@ -44,19 +44,19 @@ export default function Flow() {
               <button
                 onClick={() => navigate(s.route)}
                 data-testid={`flow-step-${s.key}`}
-                className="group w-full flex items-center gap-4 border border-border bg-[#0A0A0A] p-4 text-left hover:border-[#FF3B30] transition-colors duration-200"
+                className="group w-full flex items-center gap-4 border border-border bg-white p-4 text-left hover:border-[#FF3B30] transition-colors duration-200"
               >
                 <div className="shrink-0">
                   {s.done
                     ? <CheckCircle size={28} weight="fill" className="text-[#34C759]" />
                     : <Circle size={28} className="text-zinc-700" />}
                 </div>
-                <div className="w-8 font-mono text-sm text-zinc-600">{String(i + 1).padStart(2, "0")}</div>
+                <div className="w-8 font-mono text-sm text-zinc-500">{String(i + 1).padStart(2, "0")}</div>
                 <div className="flex-1 min-w-0">
                   <div className="font-display text-lg">{s.label}</div>
                   <div className="text-xs text-zinc-500">{s.done ? `${s.count} ready` : "Not started — click to begin"}</div>
                 </div>
-                <ArrowRight size={18} className="text-zinc-600 group-hover:text-[#FF3B30] transition-colors duration-200" />
+                <ArrowRight size={18} className="text-zinc-500 group-hover:text-[#FF3B30] transition-colors duration-200" />
               </button>
             </Fade>
           ))}

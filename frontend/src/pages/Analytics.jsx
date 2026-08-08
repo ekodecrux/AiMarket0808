@@ -39,8 +39,8 @@ export default function Analytics() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <Fade delay={0.05}>
-          <div className="border border-border bg-[#0A0A0A]">
-            <div className="px-5 py-3 border-b border-border text-xs uppercase tracking-[0.15em] text-zinc-400">Lead Acquisition (6mo)</div>
+          <div className="border border-border bg-white">
+            <div className="px-5 py-3 border-b border-border text-xs uppercase tracking-[0.15em] text-zinc-500">Lead Acquisition (6mo)</div>
             <div className="p-4 h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.trend}>
@@ -56,8 +56,8 @@ export default function Analytics() {
           </div>
         </Fade>
         <Fade delay={0.1}>
-          <div className="border border-border bg-[#0A0A0A]">
-            <div className="px-5 py-3 border-b border-border text-xs uppercase tracking-[0.15em] text-zinc-400">Revenue Trend</div>
+          <div className="border border-border bg-white">
+            <div className="px-5 py-3 border-b border-border text-xs uppercase tracking-[0.15em] text-zinc-500">Revenue Trend</div>
             <div className="p-4 h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={data.trend}>
@@ -76,11 +76,11 @@ export default function Analytics() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Fade delay={0.15}>
-          <div className="lg:col-span-2 border border-border bg-[#0A0A0A]">
-            <div className="px-5 py-3 border-b border-border text-xs uppercase tracking-[0.15em] text-zinc-400">Channel ROAS</div>
+          <div className="lg:col-span-2 border border-border bg-white">
+            <div className="px-5 py-3 border-b border-border text-xs uppercase tracking-[0.15em] text-zinc-500">Channel ROAS</div>
             <div className="p-4 h-64">
               {data.channel_performance.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-sm text-zinc-600">Add campaigns to populate channel analytics.</div>
+                <div className="h-full flex items-center justify-center text-sm text-zinc-500">Add campaigns to populate channel analytics.</div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={data.channel_performance} layout="vertical">
@@ -96,8 +96,8 @@ export default function Analytics() {
           </div>
         </Fade>
         <Fade delay={0.2}>
-          <div className="border border-border bg-[#0A0A0A]">
-            <div className="px-5 py-3 border-b border-border text-xs uppercase tracking-[0.15em] text-zinc-400">ROI Gauge</div>
+          <div className="border border-border bg-white">
+            <div className="px-5 py-3 border-b border-border text-xs uppercase tracking-[0.15em] text-zinc-500">ROI Gauge</div>
             <div className="p-4 h-64 flex items-center justify-center relative">
               <ResponsiveContainer width="100%" height="100%">
                 <RadialBarChart innerRadius="70%" outerRadius="100%" data={roiData} startAngle={90} endAngle={-270}>

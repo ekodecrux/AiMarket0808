@@ -41,17 +41,17 @@ export default function Campaigns() {
       />
 
       {loading ? <Loader label="Loading campaigns" /> : items.length === 0 ? (
-        <Section><div className="text-center py-16 text-zinc-600 text-sm">No campaigns yet. Create one to start tracking performance.</div></Section>
+        <Section><div className="text-center py-16 text-zinc-500 text-sm">No campaigns yet. Create one to start tracking performance.</div></Section>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {items.map((c) => (
-            <div key={c.id} className="border border-border bg-[#0A0A0A]" data-testid={`campaign-${c.id}`}>
+            <div key={c.id} className="border border-border bg-white" data-testid={`campaign-${c.id}`}>
               <div className="flex items-start justify-between p-5 border-b border-border">
                 <div>
                   <div className="font-display text-lg">{c.name}</div>
                   <div className="text-xs text-zinc-500 mt-0.5">{c.channel} · {c.objective}</div>
                 </div>
-                <span className={`text-xs px-2 py-1 border ${c.status === "Active" ? "text-[#34C759] border-[#34C759]/40" : "text-zinc-500 border-zinc-700"}`}>{c.status}</span>
+                <span className={`text-xs px-2 py-1 border ${c.status === "Active" ? "text-[#34C759] border-[#34C759]/40" : "text-zinc-500 border-zinc-300"}`}>{c.status}</span>
               </div>
               <div className="grid grid-cols-4 border-b border-border">
                 {[["Spend", format(c.budget || 0)], ["Revenue", format(c.revenue || 0)], ["ROAS", `${c.roas}x`], ["ROI", `${c.roi}%`]].map(([l, v]) => (
@@ -70,9 +70,9 @@ export default function Campaigns() {
                 ))}
               </div>
               <div className="flex items-center gap-2 p-4">
-                <button onClick={() => setEditing(c)} data-testid={`edit-metrics-${c.id}`} className="flex items-center gap-1 text-xs border border-zinc-800 px-3 py-1.5 hover:border-[#FF3B30] hover:text-[#FF3B30] transition-colors duration-200"><PencilSimple size={14} /> Update Metrics</button>
-                <button onClick={() => toggle(c.id)} data-testid={`toggle-campaign-${c.id}`} className="flex items-center gap-1 text-xs border border-zinc-800 px-3 py-1.5 hover:border-zinc-600 transition-colors duration-200">{c.status === "Active" ? <><Pause size={14} /> Pause</> : <><Play size={14} /> Resume</>}</button>
-                <button onClick={() => del(c.id)} data-testid={`delete-campaign-${c.id}`} className="ml-auto text-zinc-600 hover:text-[#FF3B30] transition-colors duration-200"><Trash size={16} /></button>
+                <button onClick={() => setEditing(c)} data-testid={`edit-metrics-${c.id}`} className="flex items-center gap-1 text-xs border border-zinc-200 px-3 py-1.5 hover:border-[#FF3B30] hover:text-[#FF3B30] transition-colors duration-200"><PencilSimple size={14} /> Update Metrics</button>
+                <button onClick={() => toggle(c.id)} data-testid={`toggle-campaign-${c.id}`} className="flex items-center gap-1 text-xs border border-zinc-200 px-3 py-1.5 hover:border-zinc-600 transition-colors duration-200">{c.status === "Active" ? <><Pause size={14} /> Pause</> : <><Play size={14} /> Resume</>}</button>
+                <button onClick={() => del(c.id)} data-testid={`delete-campaign-${c.id}`} className="ml-auto text-zinc-500 hover:text-[#FF3B30] transition-colors duration-200"><Trash size={16} /></button>
               </div>
             </div>
           ))}
@@ -109,7 +109,7 @@ function CampaignForm({ clientId, onClose, onSaved }) {
         <div>
           <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">Channel</label>
           <select value={form.channel} onChange={(e) => setForm({ ...form, channel: e.target.value })} data-testid="campaign-channel"
-            className="w-full bg-[#0A0A0A] border border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200">
+            className="w-full bg-white border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200">
             {CHANNELS.map((c) => <option key={c}>{c}</option>)}
           </select>
         </div>
@@ -154,7 +154,7 @@ function MetricsForm({ campaign, onClose, onSaved }) {
 
 const Modal = ({ title, children, onClose }) => (
   <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
-    <div className="bg-[#0A0A0A] border border-border w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+    <div className="bg-white border border-border w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
       <div className="flex items-center justify-between px-5 py-4 border-b border-border">
         <h3 className="font-display text-lg">{title}</h3>
         <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors duration-200"><X size={20} /></button>
@@ -168,13 +168,13 @@ const TextIn = ({ label, value, onChange, testid, type = "text", span }) => (
   <div className={span ? "col-span-2" : ""}>
     <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">{label}</label>
     <input type={type} value={value} onChange={(e) => onChange(e.target.value)} data-testid={testid}
-      className="w-full bg-transparent border border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200" />
+      className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200" />
   </div>
 );
 
 const FormFooter = ({ busy, onClose, onSubmit, testid }) => (
   <div className="flex justify-end gap-3 mt-6">
-    <button onClick={onClose} className="px-4 py-2 text-sm border border-zinc-800 hover:border-zinc-600 transition-colors duration-200">Cancel</button>
+    <button onClick={onClose} className="px-4 py-2 text-sm border border-zinc-200 hover:border-zinc-600 transition-colors duration-200">Cancel</button>
     <button onClick={onSubmit} disabled={busy} data-testid={testid} className="px-4 py-2 text-sm bg-[#FF3B30] text-white hover:bg-[#D63026] disabled:opacity-50 transition-colors duration-200">{busy ? "Saving" : "Save"}</button>
   </div>
 );

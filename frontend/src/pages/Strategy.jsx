@@ -61,7 +61,7 @@ export default function Strategy() {
                       placeholder={ph}
                       onChange={(e) => setForm({ ...form, [key]: e.target.value })}
                       data-testid={`strategy-${key}`}
-                      className="w-full bg-transparent border border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200 resize-none"
+                      className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200 resize-none"
                     />
                   ) : (
                     <input
@@ -69,7 +69,7 @@ export default function Strategy() {
                       placeholder={ph}
                       onChange={(e) => setForm({ ...form, [key]: e.target.value })}
                       data-testid={`strategy-${key}`}
-                      className="w-full bg-transparent border border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200"
+                      className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200"
                     />
                   )}
                 </div>
@@ -92,11 +92,11 @@ export default function Strategy() {
                   <button
                     key={h.id}
                     onClick={() => setResult(h.result)}
-                    className="w-full text-left px-3 py-2 border border-zinc-800 hover:border-zinc-600 text-sm transition-colors duration-200"
+                    className="w-full text-left px-3 py-2 border border-zinc-200 hover:border-zinc-600 text-sm transition-colors duration-200"
                     data-testid={`strategy-history-${h.id}`}
                   >
                     <div className="truncate">{h.input?.product || "Strategy"}</div>
-                    <div className="text-xs text-zinc-600">{h.input?.industry}</div>
+                    <div className="text-xs text-zinc-500">{h.input?.industry}</div>
                   </button>
                 ))}
               </div>
@@ -109,7 +109,7 @@ export default function Strategy() {
           {busy && <Section><Loader label="CMO Agent is building your roadmap" /></Section>}
           {!busy && !result && (
             <Section>
-              <div className="text-center py-16 text-zinc-600">
+              <div className="text-center py-16 text-zinc-500">
                 <Target size={40} className="mx-auto mb-4 text-zinc-700" />
                 <div className="text-sm">Your AI-generated marketing roadmap will appear here.</div>
               </div>
@@ -124,18 +124,18 @@ export default function Strategy() {
 
 function StrategyResult({ result }) {
   if (result._error) {
-    return <Section title="Raw Output"><pre className="text-xs text-zinc-400 whitespace-pre-wrap">{result._raw}</pre></Section>;
+    return <Section title="Raw Output"><pre className="text-xs text-zinc-500 whitespace-pre-wrap">{result._raw}</pre></Section>;
   }
   return (
     <Fade>
       <div className="space-y-6">
         <Section title="Executive Summary">
-          <p className="text-sm text-zinc-300 leading-relaxed">{result.executive_summary}</p>
-          {result.gtm_strategy && <p className="text-sm text-zinc-400 leading-relaxed mt-3">{result.gtm_strategy}</p>}
+          <p className="text-sm text-zinc-700 leading-relaxed">{result.executive_summary}</p>
+          {result.gtm_strategy && <p className="text-sm text-zinc-500 leading-relaxed mt-3">{result.gtm_strategy}</p>}
           {result.target_audience && (
             <div className="mt-4 pt-4 border-t border-border">
               <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Target Audience</div>
-              <p className="text-sm text-zinc-300">{result.target_audience}</p>
+              <p className="text-sm text-zinc-700">{result.target_audience}</p>
             </div>
           )}
         </Section>
@@ -144,11 +144,11 @@ function StrategyResult({ result }) {
           <Section title={<span className="flex items-center gap-2"><Users size={14} /> Customer Personas</span>}>
             <div className="grid sm:grid-cols-2 gap-4">
               {result.personas.map((p, i) => (
-                <div key={i} className="border border-zinc-800 p-4">
+                <div key={i} className="border border-zinc-200 p-4">
                   <div className="font-display text-lg">{p.name}</div>
                   <div className="text-xs text-[#FF3B30] uppercase tracking-wider mb-2">{p.role}</div>
-                  <div className="text-xs text-zinc-400"><span className="text-zinc-500">Pain: </span>{p.pain_points}</div>
-                  <div className="text-xs text-zinc-400 mt-1"><span className="text-zinc-500">Channels: </span>{p.channels}</div>
+                  <div className="text-xs text-zinc-500"><span className="text-zinc-500">Pain: </span>{p.pain_points}</div>
+                  <div className="text-xs text-zinc-500 mt-1"><span className="text-zinc-500">Channels: </span>{p.channels}</div>
                 </div>
               ))}
             </div>
@@ -164,7 +164,7 @@ function StrategyResult({ result }) {
                     <span>{c.channel}</span>
                     <span className="font-mono text-[#FF3B30]">{c.allocation_pct}%</span>
                   </div>
-                  <div className="h-1.5 bg-[#141414]"><div className="h-full bg-[#FF3B30]" style={{ width: `${c.allocation_pct}%` }} /></div>
+                  <div className="h-1.5 bg-zinc-100"><div className="h-full bg-[#FF3B30]" style={{ width: `${c.allocation_pct}%` }} /></div>
                   <div className="text-xs text-zinc-500 mt-1">{c.rationale}</div>
                 </div>
               ))}
@@ -183,7 +183,7 @@ function StrategyResult({ result }) {
                   <tr key={i} className="border-b border-zinc-900">
                     <td className="py-2">{b.category}</td>
                     <td className="py-2 text-right font-mono">{b.pct}%</td>
-                    <td className="py-2 text-right font-mono text-zinc-400">{b.amount}</td>
+                    <td className="py-2 text-right font-mono text-zinc-500">{b.amount}</td>
                   </tr>
                 ))}
               </tbody>
@@ -195,7 +195,7 @@ function StrategyResult({ result }) {
           <Section title={<span className="flex items-center gap-2"><Calendar size={14} /> Campaign Calendar</span>}>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {result.campaign_calendar.map((q, i) => (
-                <div key={i} className="border border-zinc-800 p-3">
+                <div key={i} className="border border-zinc-200 p-3">
                   <div className="font-mono text-[#FF3B30] text-sm">{q.quarter}</div>
                   <div className="text-sm mt-1">{q.theme}</div>
                   <div className="text-xs text-zinc-500 mt-1">{q.key_campaigns}</div>
@@ -209,8 +209,8 @@ function StrategyResult({ result }) {
           <Section title={<span className="flex items-center gap-2"><ListChecks size={14} /> KPI Targets</span>}>
             <div className="grid sm:grid-cols-2 gap-3">
               {result.kpis.map((kp, i) => (
-                <div key={i} className="flex justify-between border border-zinc-800 px-3 py-2 text-sm">
-                  <span className="text-zinc-400">{kp.metric}</span>
+                <div key={i} className="flex justify-between border border-zinc-200 px-3 py-2 text-sm">
+                  <span className="text-zinc-500">{kp.metric}</span>
                   <span className="font-mono text-white">{kp.target}</span>
                 </div>
               ))}

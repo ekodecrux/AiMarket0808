@@ -55,8 +55,8 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <Fade delay={0.05}>
-          <div className="lg:col-span-2 border border-border bg-[#0A0A0A]">
-            <div className="px-5 py-3 border-b border-border text-xs uppercase tracking-[0.15em] text-zinc-400">
+          <div className="lg:col-span-2 border border-border bg-white">
+            <div className="px-5 py-3 border-b border-border text-xs uppercase tracking-[0.15em] text-zinc-500">
               Leads & Revenue Trend
             </div>
             <div className="p-4 h-72">
@@ -81,8 +81,8 @@ export default function Dashboard() {
         </Fade>
 
         <Fade delay={0.1}>
-          <div className="border border-border bg-[#0A0A0A]">
-            <div className="px-5 py-3 border-b border-border text-xs uppercase tracking-[0.15em] text-zinc-400">
+          <div className="border border-border bg-white">
+            <div className="px-5 py-3 border-b border-border text-xs uppercase tracking-[0.15em] text-zinc-500">
               Conversion Funnel
             </div>
             <div className="p-5 space-y-3">
@@ -92,10 +92,10 @@ export default function Dashboard() {
                 return (
                   <div key={f.stage}>
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-zinc-400">{f.stage}</span>
-                      <span className="font-mono text-zinc-300">{f.value.toLocaleString()}</span>
+                      <span className="text-zinc-500">{f.stage}</span>
+                      <span className="font-mono text-zinc-700">{f.value.toLocaleString()}</span>
                     </div>
-                    <div className="h-2 bg-[#141414]">
+                    <div className="h-2 bg-zinc-100">
                       <div
                         className="h-full bg-[#FF3B30] transition-all duration-500"
                         style={{ width: `${pct}%`, opacity: 1 - i * 0.14 }}
@@ -110,13 +110,13 @@ export default function Dashboard() {
       </div>
 
       <Fade delay={0.15}>
-        <div className="border border-border bg-[#0A0A0A] mb-8">
-          <div className="px-5 py-3 border-b border-border text-xs uppercase tracking-[0.15em] text-zinc-400">
+        <div className="border border-border bg-white mb-8">
+          <div className="px-5 py-3 border-b border-border text-xs uppercase tracking-[0.15em] text-zinc-500">
             Channel Performance · ROAS
           </div>
           <div className="p-4 h-64">
             {data.channel_performance.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-sm text-zinc-600">
+              <div className="h-full flex items-center justify-center text-sm text-zinc-500">
                 No campaigns yet — create one in Campaigns to see channel ROAS.
               </div>
             ) : (
@@ -144,11 +144,11 @@ export default function Dashboard() {
             <Link
               to={c.to}
               data-testid={`quick-${c.to.slice(1)}`}
-              className="group block border border-border bg-[#0A0A0A] p-5 hover:border-[#FF3B30] transition-colors duration-200"
+              className="group block border border-border bg-white p-5 hover:border-[#FF3B30] transition-colors duration-200"
             >
               <div className="flex items-start justify-between">
                 <c.icon size={24} className="text-[#FF3B30]" />
-                <ArrowUpRight size={18} className="text-zinc-600 group-hover:text-white transition-colors duration-200" />
+                <ArrowUpRight size={18} className="text-zinc-500 group-hover:text-white transition-colors duration-200" />
               </div>
               <div className="font-display text-lg mt-4">{c.title}</div>
               <div className="text-xs text-zinc-500 mt-1">{c.desc}</div>

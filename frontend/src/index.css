@@ -10,8 +10,8 @@ body {
     font-family: 'IBM Plex Sans', -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: #050505;
-    color: #ffffff;
+    background-color: #ffffff;
+    color: #111111;
 }
 
 .font-display { font-family: 'Cabinet Grotesk', sans-serif; }
@@ -21,24 +21,24 @@ code { font-family: 'JetBrains Mono', monospace; }
 
 @layer base {
     :root {
-        --background: 0 0% 2%;
-        --foreground: 0 0% 100%;
-        --card: 0 0% 6%;
-        --card-foreground: 0 0% 100%;
-        --popover: 0 0% 6%;
-        --popover-foreground: 0 0% 100%;
+        --background: 0 0% 100%;
+        --foreground: 0 0% 7%;
+        --card: 0 0% 100%;
+        --card-foreground: 0 0% 7%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 0 0% 7%;
         --primary: 4 100% 59%;
         --primary-foreground: 0 0% 100%;
-        --secondary: 0 0% 10%;
-        --secondary-foreground: 0 0% 100%;
-        --muted: 0 0% 10%;
-        --muted-foreground: 0 0% 63%;
-        --accent: 0 0% 10%;
-        --accent-foreground: 0 0% 100%;
+        --secondary: 0 0% 96%;
+        --secondary-foreground: 0 0% 7%;
+        --muted: 0 0% 96%;
+        --muted-foreground: 0 0% 42%;
+        --accent: 0 0% 96%;
+        --accent-foreground: 0 0% 7%;
         --destructive: 4 100% 59%;
         --destructive-foreground: 0 0% 100%;
-        --border: 240 4% 16%;
-        --input: 240 4% 16%;
+        --border: 220 13% 88%;
+        --input: 220 13% 84%;
         --ring: 4 100% 59%;
         --radius: 0.125rem;
     }
@@ -56,16 +56,16 @@ code { font-family: 'JetBrains Mono', monospace; }
     inset: 0;
     z-index: 0;
     pointer-events: none;
-    opacity: 0.025;
+    opacity: 0.012;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 ::selection { background: #FF3B30; color: #fff; }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: #0a0a0a; }
-::-webkit-scrollbar-thumb { background: #27272a; }
-::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+::-webkit-scrollbar-track { background: #f7f7f8; }
+::-webkit-scrollbar-thumb { background: #cfd3d8; }
+::-webkit-scrollbar-thumb:hover { background: #aeb4bc; }
 
 @keyframes fade-up {
     from { opacity: 0; transform: translateY(8px); }

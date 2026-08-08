@@ -54,20 +54,20 @@ export default function SalesAssistant() {
       />
 
       {leads.length === 0 ? (
-        <Section><div className="text-center py-16 text-zinc-600 text-sm">Add leads first in Lead Management to use the Sales Assistant.</div></Section>
+        <Section><div className="text-center py-16 text-zinc-500 text-sm">Add leads first in Lead Management to use the Sales Assistant.</div></Section>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 space-y-4">
             <Section title="Select Lead">
               <select value={selected} onChange={(e) => setSelected(e.target.value)} data-testid="sales-lead-select"
-                className="w-full bg-[#0A0A0A] border border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200">
+                className="w-full bg-white border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200">
                 {leads.map((l) => <option key={l.id} value={l.id}>{l.name} — {l.company}</option>)}
               </select>
               {lead && (
                 <div className="mt-4 pt-4 border-t border-border text-sm space-y-1">
-                  <div className="text-zinc-400">{lead.role || "—"}</div>
-                  <div className="text-zinc-600 text-xs">{lead.email}</div>
-                  <div className="text-xs"><span className="text-zinc-600">Category: </span><span className="text-[#FF3B30]">{lead.category}</span></div>
+                  <div className="text-zinc-500">{lead.role || "—"}</div>
+                  <div className="text-zinc-500 text-xs">{lead.email}</div>
+                  <div className="text-xs"><span className="text-zinc-500">Category: </span><span className="text-[#FF3B30]">{lead.category}</span></div>
                 </div>
               )}
             </Section>
@@ -75,7 +75,7 @@ export default function SalesAssistant() {
               <div className="space-y-2">
                 {ACTIONS.map((a) => (
                   <button key={a.id} onClick={() => run(a.id)} disabled={busy} data-testid={`sales-action-${a.id}`}
-                    className="w-full flex items-center gap-3 px-3 py-3 border border-zinc-800 text-sm hover:border-[#FF3B30] hover:text-[#FF3B30] transition-colors duration-200 disabled:opacity-40">
+                    className="w-full flex items-center gap-3 px-3 py-3 border border-zinc-200 text-sm hover:border-[#FF3B30] hover:text-[#FF3B30] transition-colors duration-200 disabled:opacity-40">
                     <a.icon size={18} /> {busy === a.id ? "Generating..." : a.label}
                   </button>
                 ))}
@@ -85,7 +85,7 @@ export default function SalesAssistant() {
 
           <div className="lg:col-span-2">
             {busy && <Section><Loader label="Sales Agent is drafting" /></Section>}
-            {!busy && !result && <Section><div className="text-center py-16 text-zinc-600"><EnvelopeSimple size={40} className="mx-auto mb-4 text-zinc-700" /><div className="text-sm">Pick an AI action to draft a message.</div></div></Section>}
+            {!busy && !result && <Section><div className="text-center py-16 text-zinc-500"><EnvelopeSimple size={40} className="mx-auto mb-4 text-zinc-700" /><div className="text-sm">Pick an AI action to draft a message.</div></div></Section>}
             {result && !result._error && (
               <Fade><Section title={
                 <div className="flex items-center justify-between w-full">
@@ -101,10 +101,10 @@ export default function SalesAssistant() {
                   </div>
                 </div>
               }>
-                <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{result.message}</p>
+                <p className="text-sm text-zinc-700 whitespace-pre-wrap leading-relaxed">{result.message}</p>
               </Section></Fade>
             )}
-            {result?._error && <Section title="Raw Output"><pre className="text-xs text-zinc-400 whitespace-pre-wrap">{result._raw}</pre></Section>}
+            {result?._error && <Section title="Raw Output"><pre className="text-xs text-zinc-500 whitespace-pre-wrap">{result._raw}</pre></Section>}
           </div>
         </div>
       )}

@@ -64,7 +64,7 @@ export default function Login() {
         </div>
         <div className="grid grid-cols-3 gap-px border border-border bg-border">
           {[["90-95%", "Automated Ops"], ["12", "AI Agents"], ["∞", "Scale"]].map(([v, l]) => (
-            <div key={l} className="bg-[#050505] p-4"><div className="font-mono text-2xl">{v}</div><div className="text-[10px] uppercase tracking-wider text-zinc-500 mt-1">{l}</div></div>
+            <div key={l} className="bg-white p-4"><div className="font-mono text-2xl">{v}</div><div className="text-[10px] uppercase tracking-wider text-zinc-500 mt-1">{l}</div></div>
           ))}
         </div>
       </div>
@@ -80,7 +80,7 @@ export default function Login() {
           <div className="flex border border-border mb-8">
             {[["password", "Password"], ["otp", "OTP Login"]].map(([id, label]) => (
               <button key={id} onClick={() => { setMethod(id); setError(""); }} data-testid={`method-${id}`}
-                className={`flex-1 py-2 text-xs uppercase tracking-wider transition-colors duration-200 ${method === id ? "bg-[#FF3B30] text-white" : "text-zinc-400 hover:text-white"}`}>
+                className={`flex-1 py-2 text-xs uppercase tracking-wider transition-colors duration-200 ${method === id ? "bg-[#FF3B30] text-white" : "text-zinc-500 hover:text-white"}`}>
                 {label}
               </button>
             ))}
@@ -106,7 +106,7 @@ export default function Login() {
                   {mode === "login" ? "Create one" : "Sign in"}
                 </button>
               </div>
-              <div className="mt-8 pt-6 border-t border-border text-xs text-zinc-600 font-mono">Demo · admin@marketing.ai / admin123</div>
+              <div className="mt-8 pt-6 border-t border-border text-xs text-zinc-500 font-mono">Demo · admin@marketing.ai / admin123</div>
             </>
           ) : (
             <>
@@ -133,7 +133,7 @@ export default function Login() {
                   <button type="button" onClick={() => setOtp({ ...otp, sent: false, code: "" })} className="w-full text-xs text-zinc-500 hover:text-white transition-colors duration-200">Use a different identifier</button>
                 </form>
               )}
-              <div className="mt-8 pt-6 border-t border-border text-xs text-zinc-600 font-mono">Demo · admin@marketing.ai</div>
+              <div className="mt-8 pt-6 border-t border-border text-xs text-zinc-500 font-mono">Demo · admin@marketing.ai</div>
             </>
           )}
         </div>
@@ -146,6 +146,6 @@ const Field = ({ label, value, onChange, testid, type, required = true }) => (
   <div>
     <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">{label}</label>
     <input type={type} required={required} value={value} onChange={(e) => onChange(e.target.value)} data-testid={testid}
-      className="w-full bg-transparent border border-zinc-800 px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#FF3B30] transition-colors duration-200" />
+      className="w-full bg-transparent border border-zinc-200 px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#FF3B30] transition-colors duration-200" />
   </div>
 );

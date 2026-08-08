@@ -10,7 +10,7 @@ const CAT_COLOR = {
   "Sales Ready": "text-[#34C759] border-[#34C759]/40 bg-[#34C759]/5",
   "Warm": "text-[#FFCC00] border-[#FFCC00]/40 bg-[#FFCC00]/5",
   "Cold": "text-[#007AFF] border-[#007AFF]/40 bg-[#007AFF]/5",
-  "Unscored": "text-zinc-500 border-zinc-700",
+  "Unscored": "text-zinc-500 border-zinc-300",
 };
 const STAGES = ["New", "Qualified", "Opportunity", "Won", "Lost"];
 
@@ -68,15 +68,15 @@ export default function Leads() {
         action={
           <div className="flex flex-wrap gap-2">
             <button onClick={syncCrm} disabled={crmBusy} data-testid="sync-crm-btn"
-              className="flex items-center gap-2 border border-zinc-700 text-zinc-200 px-3 py-2.5 text-sm uppercase tracking-wider hover:border-[#007AFF] hover:text-[#007AFF] transition-colors duration-200 disabled:opacity-40">
+              className="flex items-center gap-2 border border-zinc-300 text-zinc-200 px-3 py-2.5 text-sm uppercase tracking-wider hover:border-[#007AFF] hover:text-[#007AFF] transition-colors duration-200 disabled:opacity-40">
               <ArrowsClockwise size={16} className={crmBusy ? "animate-spin" : ""} /> Sync CRM
             </button>
             <button onClick={() => setShowScrape(true)} data-testid="discover-leads-btn"
-              className="flex items-center gap-2 border border-zinc-700 text-zinc-200 px-3 py-2.5 text-sm uppercase tracking-wider hover:border-[#FF3B30] hover:text-[#FF3B30] transition-colors duration-200">
+              className="flex items-center gap-2 border border-zinc-300 text-zinc-200 px-3 py-2.5 text-sm uppercase tracking-wider hover:border-[#FF3B30] hover:text-[#FF3B30] transition-colors duration-200">
               <MagnifyingGlass size={16} /> Discover
             </button>
             <button onClick={() => setShowImport(true)} data-testid="import-leads-btn"
-              className="flex items-center gap-2 border border-zinc-700 text-zinc-200 px-3 py-2.5 text-sm uppercase tracking-wider hover:border-[#FF3B30] hover:text-[#FF3B30] transition-colors duration-200">
+              className="flex items-center gap-2 border border-zinc-300 text-zinc-200 px-3 py-2.5 text-sm uppercase tracking-wider hover:border-[#FF3B30] hover:text-[#FF3B30] transition-colors duration-200">
               <UploadSimple size={16} /> Import CSV
             </button>
             <button onClick={() => setShowForm(true)} data-testid="add-lead-btn"
@@ -90,7 +90,7 @@ export default function Leads() {
       {loading ? <Loader label="Loading leads" /> : (
         <Section title={`Leads · ${leads.length}`}>
           {leads.length === 0 ? (
-            <div className="text-center py-16 text-zinc-600 text-sm">No leads yet. Add your first lead to begin scoring.</div>
+            <div className="text-center py-16 text-zinc-500 text-sm">No leads yet. Add your first lead to begin scoring.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -100,24 +100,24 @@ export default function Leads() {
                 </tr></thead>
                 <tbody>
                   {leads.map((l) => (
-                    <tr key={l.id} className="border-b border-zinc-900 hover:bg-[#0F0F0F] transition-colors duration-200" data-testid={`lead-row-${l.id}`}>
-                      <td className="py-3"><div>{l.name}</div><div className="text-xs text-zinc-600">{l.email}</div></td>
-                      <td className="py-3"><div>{l.company}</div><div className="text-xs text-zinc-600">{l.role}</div></td>
+                    <tr key={l.id} className="border-b border-zinc-900 hover:bg-zinc-50 transition-colors duration-200" data-testid={`lead-row-${l.id}`}>
+                      <td className="py-3"><div>{l.name}</div><div className="text-xs text-zinc-500">{l.email}</div></td>
+                      <td className="py-3"><div>{l.company}</div><div className="text-xs text-zinc-500">{l.role}</div></td>
                       <td className="py-3 font-mono">{l.score ?? "—"}</td>
                       <td className="py-3"><span className={`text-xs px-2 py-1 border ${CAT_COLOR[l.category] || CAT_COLOR.Unscored}`}>{l.category}</span></td>
                       <td className="py-3">
                         <select value={l.stage} onChange={(e) => setStage(l.id, e.target.value)} data-testid={`lead-stage-${l.id}`}
-                          className="bg-[#0A0A0A] border border-zinc-800 px-2 py-1 text-xs focus:outline-none focus:border-[#FF3B30] transition-colors duration-200">
+                          className="bg-white border border-zinc-200 px-2 py-1 text-xs focus:outline-none focus:border-[#FF3B30] transition-colors duration-200">
                           {STAGES.map((s) => <option key={s}>{s}</option>)}
                         </select>
                       </td>
                       <td className="py-3">
                         <div className="flex items-center justify-end gap-2">
                           <button onClick={() => score(l.id)} disabled={scoring === l.id} data-testid={`score-lead-${l.id}`}
-                            className="flex items-center gap-1 text-xs border border-zinc-800 px-2 py-1.5 hover:border-[#FF3B30] hover:text-[#FF3B30] transition-colors duration-200 disabled:opacity-40">
+                            className="flex items-center gap-1 text-xs border border-zinc-200 px-2 py-1.5 hover:border-[#FF3B30] hover:text-[#FF3B30] transition-colors duration-200 disabled:opacity-40">
                             <Sparkle size={12} weight="fill" /> {scoring === l.id ? "..." : "Score"}
                           </button>
-                          <button onClick={() => del(l.id)} data-testid={`delete-lead-${l.id}`} className="text-zinc-600 hover:text-[#FF3B30] transition-colors duration-200"><Trash size={16} /></button>
+                          <button onClick={() => del(l.id)} data-testid={`delete-lead-${l.id}`} className="text-zinc-500 hover:text-[#FF3B30] transition-colors duration-200"><Trash size={16} /></button>
                         </div>
                       </td>
                     </tr>
@@ -151,7 +151,7 @@ function ScrapeModal({ clientId, onClose, onSaved }) {
   };
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#0A0A0A] border border-border w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white border border-border w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h3 className="font-display text-lg">Discover Leads from Websites</h3>
           <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors duration-200"><X size={20} /></button>
@@ -161,9 +161,9 @@ function ScrapeModal({ clientId, onClose, onSaved }) {
             <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">Company Domains (one per line, max 10)</label>
             <textarea rows={5} value={domains} onChange={(e) => setDomains(e.target.value)} data-testid="scrape-domains"
               placeholder={"stripe.com\nnotion.so\nvercel.com"}
-              className="w-full bg-transparent border border-zinc-800 px-3 py-2 text-sm font-mono focus:outline-none focus:border-[#FF3B30] transition-colors duration-200 resize-none" />
+              className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm font-mono focus:outline-none focus:border-[#FF3B30] transition-colors duration-200 resize-none" />
           </div>
-          <p className="text-xs text-zinc-600">NEXUS fetches each site's contact/about pages and extracts real emails, phones and social profiles. ~5-15s.</p>
+          <p className="text-xs text-zinc-500">NEXUS fetches each site's contact/about pages and extracts real emails, phones and social profiles. ~5-15s.</p>
           <button onClick={run} disabled={busy} data-testid="run-scrape-btn"
             className="w-full flex items-center justify-center gap-2 bg-[#FF3B30] text-white py-3 text-sm uppercase tracking-wider hover:bg-[#D63026] disabled:opacity-50 transition-colors duration-200">
             <MagnifyingGlass size={16} /> {busy ? "Scraping" : "Discover Leads"}
@@ -196,19 +196,19 @@ function ImportModal({ clientId, onClose, onSaved }) {
   };
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#0A0A0A] border border-border w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white border border-border w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h3 className="font-display text-lg">Import Leads from CSV</h3>
           <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors duration-200"><X size={20} /></button>
         </div>
         <div className="p-5 space-y-4">
           <input type="file" accept=".csv,text/csv" onChange={onFile} data-testid="import-file"
-            className="block w-full text-sm text-zinc-400 file:mr-3 file:border file:border-zinc-700 file:bg-transparent file:text-zinc-200 file:px-3 file:py-1.5 file:text-xs file:uppercase" />
-          <div className="text-xs text-zinc-600 text-center">or paste below</div>
+            className="block w-full text-sm text-zinc-500 file:mr-3 file:border file:border-zinc-300 file:bg-transparent file:text-zinc-200 file:px-3 file:py-1.5 file:text-xs file:uppercase" />
+          <div className="text-xs text-zinc-500 text-center">or paste below</div>
           <textarea rows={6} value={csv} onChange={(e) => setCsv(e.target.value)} data-testid="import-csv-text"
             placeholder={"name,email,company,title\nJane Doe,jane@acme.com,Acme,VP Marketing"}
-            className="w-full bg-transparent border border-zinc-800 px-3 py-2 text-xs font-mono focus:outline-none focus:border-[#FF3B30] transition-colors duration-200 resize-none" />
-          <p className="text-xs text-zinc-600">Recognizes columns: name, email, company, role/title, industry, size, budget, source, notes. Works with HubSpot/Zoho/Salesforce exports.</p>
+            className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-xs font-mono focus:outline-none focus:border-[#FF3B30] transition-colors duration-200 resize-none" />
+          <p className="text-xs text-zinc-500">Recognizes columns: name, email, company, role/title, industry, size, budget, source, notes. Works with HubSpot/Zoho/Salesforce exports.</p>
           <button onClick={run} disabled={busy} data-testid="run-import-btn"
             className="w-full flex items-center justify-center gap-2 bg-[#FF3B30] text-white py-3 text-sm uppercase tracking-wider hover:bg-[#D63026] disabled:opacity-50 transition-colors duration-200">
             <UploadSimple size={16} /> {busy ? "Importing" : "Import Leads"}
@@ -233,12 +233,12 @@ function LeadForm({ clientId, onClose, onSaved }) {
     <div key={key}>
       <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">{label}</label>
       <input value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} data-testid={`lead-${key}`}
-        className="w-full bg-transparent border border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200" />
+        className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200" />
     </div>
   );
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#0A0A0A] border border-border w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white border border-border w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h3 className="font-display text-lg">Add Lead</h3>
           <button onClick={onClose} data-testid="close-lead-form" className="text-zinc-500 hover:text-white transition-colors duration-200"><X size={20} /></button>
@@ -248,11 +248,11 @@ function LeadForm({ clientId, onClose, onSaved }) {
           <div className="col-span-2">
             <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">Notes</label>
             <textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} data-testid="lead-notes"
-              className="w-full bg-transparent border border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200 resize-none" />
+              className="w-full bg-transparent border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#FF3B30] transition-colors duration-200 resize-none" />
           </div>
         </div>
         <div className="px-5 py-4 border-t border-border flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm border border-zinc-800 hover:border-zinc-600 transition-colors duration-200">Cancel</button>
+          <button onClick={onClose} className="px-4 py-2 text-sm border border-zinc-200 hover:border-zinc-600 transition-colors duration-200">Cancel</button>
           <button onClick={submit} disabled={busy} data-testid="save-lead-btn" className="px-4 py-2 text-sm bg-[#FF3B30] text-white hover:bg-[#D63026] disabled:opacity-50 transition-colors duration-200">{busy ? "Saving" : "Save Lead"}</button>
         </div>
       </div>
