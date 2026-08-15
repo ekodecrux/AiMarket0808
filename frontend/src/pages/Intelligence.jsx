@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useCurrency } from "@/context/CurrencyContext";
 import api, { formatApiError } from "@/lib/api";
 import { PageHeader, Loader, Fade, Section, StatCard } from "@/components/common";
 import { toast } from "sonner";
@@ -8,6 +9,7 @@ import {
 } from "@phosphor-icons/react";
 
 export default function Intelligence() {
+  const { currency, format } = useCurrency();
   const [tab, setTab] = useState("scoring");
   const [leads, setLeads] = useState([]);
   const [load, setLoad] = useState(true);
@@ -173,11 +175,11 @@ export default function Intelligence() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-0 border border-border bg-white">
               <StatCard
                 label="Revenue Won"
-                value={`$${rep?.metrics?.total_revenue_won?.toFixed(0) ?? 0}`}
+                value={format(rep?.metrics?.total_revenue_won ?? 0)}
                 accent
               />
               <StatCard label="ROAS" value={rep?.metrics?.roas ?? 0} sub="revenue / spend" />
-              <StatCard label="CPL" value={`$${rep?.metrics?.cpl ?? 0}`} sub="spend / touches" />
+              <StatCard label="CPL" value={format(rep?.metrics?.cpl ?? 0)} sub="spend / touches" />
               <StatCard label="Touches Tracked" value={rep?.metrics?.touch_count ?? 0} sub="first / multi / last" />
             </div>
 
@@ -197,7 +199,7 @@ export default function Intelligence() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">Amount (USD)</label>
+                  <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">Amount ({currency})</label>
                   <input
                     type="number"
                     value={revenue.amount}
@@ -242,7 +244,7 @@ export default function Intelligence() {
                           <td className="py-2 pr-4 font-mono">{ch.touches}</td>
                           <td className="py-2 pr-4 font-mono">{ch.first_touch}</td>
                           <td className="py-2 pr-4 font-mono">{ch.last_touch}</td>
-                          <td className="py-2 font-mono text-[#2563EB]">${ch.first_touch_revenue}</td>
+                          <td className="py-2 font-mono text-[#2563EB]">{format(ch.first_touch_revenue ?? 0)}</td>
                         </tr>
                       ))}
                     </tbody>

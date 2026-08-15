@@ -15,6 +15,29 @@ const STATUS = {
 const CURRENCIES = ["USD", "EUR", "GBP", "INR", "AED", "AUD", "CAD", "SGD", "JPY", "BRL", "ZAR", "NGN"];
 const COUNTRIES = ["United States", "United Kingdom", "India", "United Arab Emirates", "Australia", "Canada", "Singapore", "Germany", "France", "Brazil", "South Africa", "Nigeria", "Other"];
 
+// Standard currency for each location. When the location in the business profile
+// changes, the workspace currency follows automatically (unless the owner has
+// explicitly picked a different currency and saved it).
+const COUNTRY_CURRENCY = {
+  "United States": "USD",
+  "United Kingdom": "GBP",
+  "India": "INR",
+  "United Arab Emirates": "AED",
+  "Australia": "AUD",
+  "Canada": "CAD",
+  "Singapore": "SGD",
+  "Germany": "EUR",
+  "France": "EUR",
+  "Brazil": "BRL",
+  "South Africa": "ZAR",
+  "Nigeria": "NGN",
+};
+
+const CURRENCY_SYMBOLS = {
+  USD: "$", EUR: "\u20AC", GBP: "\u00A3", INR: "\u20B9", AED: "AED", AUD: "A$",
+  CAD: "C$", SGD: "S$", JPY: "\u00A5", BRL: "R$", ZAR: "R", NGN: "\u20A6",
+};
+
 export default function Integrations() {
   const { activeClient, activeClientId } = useClient();
   const [tab, setTab] = useState("profile");
@@ -90,7 +113,7 @@ export default function Integrations() {
 }
 
 function BusinessProfile({ clientId }) {
-  const { refresh: refreshCurrency } = useCurrency();
+  const { refresh: refreshCurrency, currency: savedCurrency } = useCurrency();
   const [form, setForm] = useState(null);
   const [busy, setBusy] = useState(false);
   const [extracting, setExtracting] = useState(false);
@@ -99,6 +122,17 @@ function BusinessProfile({ clientId }) {
     const q = clientId ? `?client_id=${clientId}` : "";
     api.get(`/profile${q}`).then((r) => setForm(r.data)).catch(() => setForm({ currency: "USD", country: "United States" }));
   }, [clientId]);
+
+  // Auto-follow: when the owner changes the location, adopt that country's
+  // standard currency (only if the currency still matches the loaded one, i.e.
+  // the owner hasn't explicitly picked something else).
+  const setLocation = (country) => {
+    setForm((f) => {
+      const suggested = COUNTRY_CURRENCY[country];
+      const keeps = !suggested || f.currency === savedCurrency;
+      return { ...f, country, ...(suggested && keeps ? { currency: suggested } : {}) };
+    });
+  };
 
   const extract = async () => {
     if (!form.website) return toast.error("Enter a website URL first");
@@ -155,16 +189,17 @@ function BusinessProfile({ clientId }) {
             </div>
             <div>
               <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2 flex items-center gap-1"><Globe size={12} /> Location</label>
-              <select value={form.country || "United States"} onChange={(e) => setForm({ ...form, country: e.target.value })} data-testid="profile-country"
+              <select value={form.country || "United States"} onChange={(e) => setLocation(e.target.value)} data-testid="profile-country"
                 className="w-full bg-white border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] transition-colors duration-200">
                 {COUNTRIES.map((c) => <option key={c}>{c}</option>)}
               </select>
+              <p className="text-[11px] text-zinc-400 mt-1.5">Currency follows your location &mdash; change this to switch the workspace currency.</p>
             </div>
             <div>
               <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">Currency</label>
               <select value={form.currency || "USD"} onChange={(e) => setForm({ ...form, currency: e.target.value })} data-testid="profile-currency"
                 className="w-full bg-white border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:border-[#2563EB] transition-colors duration-200">
-                {CURRENCIES.map((c) => <option key={c}>{c}</option>)}
+                {CURRENCIES.map((c) => <option key={c} value={c}>{CURRENCY_SYMBOLS[c] ? `${c} (${CURRENCY_SYMBOLS[c]})` : c}</option>)}
               </select>
             </div>
           </div>
