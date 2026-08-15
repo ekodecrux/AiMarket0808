@@ -20,6 +20,12 @@ from models import (
     ProfileInput, ExtractProfileInput, BudgetPlanInput,
     ProposalGenerateInput, ProposalActionInput, AutopilotConfigInput, now_utc,
 )
+from engine_models import (
+    BrainIngestInput, BrainQueryInput, MissionInput, MissionActionInput,
+    LeadEnrichInput, LeadEventsInput, ExperimentInput, ExperimentDecisionInput,
+    AttributionTouchInput, RevenueEventInput, PolicyInput,
+)
+import engine as eng
 from auth import create_auth_router, seed_admin, hash_password
 import ai
 import intel
@@ -41,6 +47,11 @@ async def lifespan(app: FastAPI):
     await seed_admin(db)
     await seed_email_connection(db)
     await seed_twilio_verify_connection(db)
+    try:
+        eng.bind_db(db)
+        await eng._ensure_indexes()
+    except Exception as e:
+        logger.warning(f"engine init failed: {e}")
     creds = ROOT_DIR.parent / "memory" / "test_credentials.md"
     try:
         creds.write_text(
@@ -93,12 +104,22 @@ auth_router, get_current_user = create_auth_router(db)
 api = APIRouter(prefix="/api")
 
 
+def _clean_value(v):
+    if hasattr(v, "__class__") and v.__class__.__name__ == "ObjectId":
+        return str(v)
+    if isinstance(v, list):
+        return [_clean_value(x) for x in v]
+    if isinstance(v, dict):
+        return {k: _clean_value(x) for k, x in v.items()}
+    return v
+
+
 def _serialize(doc: dict) -> dict:
     if not doc:
         return doc
     doc = dict(doc)
     doc["id"] = str(doc.pop("_id"))
-    return doc
+    return _clean_value(doc)
 
 
 def _owner(user: dict) -> str:
@@ -333,6 +354,13 @@ async def create_lead(data: LeadInput, user: dict = Depends(get_current_user)):
     }
     res = await db.leads.insert_one(doc)
     doc["_id"] = res.inserted_id
+    try:
+        await eng.emit_event(user, "LeadCreated", entity_type="lead",
+                             entity_id=str(res.inserted_id),
+                             payload={"name": payload.get("name"), "company": payload.get("company"),
+                                      "source": payload.get("source")})
+    except Exception:
+        pass
     return _serialize(doc)
 
 
@@ -1181,6 +1209,218 @@ AGENTS = [
 @api.get("/agents")
 async def list_agents(user: dict = Depends(get_current_user)):
     return AGENTS
+
+
+# ---------------- MODULE A: BUSINESS BRAIN / RAG ----------------
+@api.post("/brain/ingest")
+async def brain_ingest_route(data: BrainIngestInput, user: dict = Depends(get_current_user)):
+    try:
+        return _clean_value(await eng.brain_ingest(user, data))
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        logger.error(f"brain ingest failed: {e}")
+        raise HTTPException(500, "Brain ingestion failed")
+
+
+@api.get("/brain/sources")
+async def brain_sources_route(client_id: str = None, user: dict = Depends(get_current_user)):
+    return _clean_value(await eng.brain_sources(user, _scoped_client(user, client_id)))
+
+
+@api.delete("/brain/sources/{source_id}")
+async def brain_remove_source_route(source_id: str, client_id: str = None,
+                                    user: dict = Depends(get_current_user)):
+    try:
+        return _clean_value(await eng.brain_remove_source(user, source_id, _scoped_client(user, client_id)))
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+
+
+@api.post("/brain/query")
+async def brain_query_route(data: BrainQueryInput, user: dict = Depends(get_current_user)):
+    return _clean_value(await eng.brain_retrieve(user, data))
+
+
+# ---------------- MODULE B: MARKETING MISSION PLANNER ----------------
+@api.post("/missions")
+async def mission_create_route(data: MissionInput, user: dict = Depends(get_current_user)):
+    try:
+        result = await eng.mission_create(user, data)
+        result["client_id"] = _scoped_client(user, data.client_id)
+        return result
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        logger.error(f"mission create failed: {e}")
+        raise HTTPException(500, "Mission planning failed")
+
+
+@api.get("/missions")
+async def mission_list_route(client_id: str = None, user: dict = Depends(get_current_user)):
+    return _clean_value(await eng.mission_list(user, _scoped_client(user, client_id)))
+
+
+@api.post("/missions/{mission_id}/approve")
+async def mission_approve_route(mission_id: str, body: MissionActionInput,
+                                user: dict = Depends(get_current_user)):
+    try:
+        return _clean_value(await eng.mission_approve(user, mission_id, approve=True, edits=body.edits))
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+
+
+@api.post("/missions/{mission_id}/reject")
+async def mission_reject_route(mission_id: str, user: dict = Depends(get_current_user)):
+    try:
+        return _clean_value(await eng.mission_approve(user, mission_id, approve=False))
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+
+
+@api.post("/missions/{mission_id}/actions/{action_index}/approve")
+async def mission_action_approve_route(mission_id: str, action_index: int,
+                                       user: dict = Depends(get_current_user)):
+    try:
+        return _clean_value(await eng.mission_approve(user, mission_id, approve=True, action_index=action_index))
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+
+
+# ---------------- MODULE I: LEAD INTELLIGENCE ----------------
+@api.post("/leads/{lead_id}/score-ai")
+async def lead_score_route(lead_id: str, user: dict = Depends(get_current_user)):
+    try:
+        return _clean_value(await eng.lead_score_explainable(user, lead_id))
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+
+
+@api.post("/leads/events")
+async def lead_intent_route(data: LeadEventsInput, user: dict = Depends(get_current_user)):
+    recorded = 0
+    for ev in data.events:
+        try:
+            await eng.lead_add_intent(user, ev)
+            recorded += 1
+        except RuntimeError:
+            pass
+    return {"recorded": recorded, "total": len(data.events)}
+
+
+# ---------------- MODULE M: EXPERIMENTS ----------------
+@api.post("/experiments")
+async def experiment_create_route(data: ExperimentInput, user: dict = Depends(get_current_user)):
+    try:
+        return _clean_value(await eng.experiment_create(user, data))
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+
+
+@api.get("/experiments")
+async def experiment_list_route(client_id: str = None, user: dict = Depends(get_current_user)):
+    if eng._db is None:
+        return []
+    tenant_key = eng._tenant_key(user, _scoped_client(user, client_id))
+    docs = await eng._db.experiments.find({"tenant_key": tenant_key}).sort("created_at", -1).to_list(100)
+    out = []
+    for d in docs:
+        d = dict(d)
+        d["id"] = str(d.pop("_id"))
+        variants = await eng._db.experiment_variants.find({"experiment_id": d["id"]}).to_list(20)
+        for v in variants:
+            v = dict(v)
+            v["id"] = str(v.pop("_id"))
+        d["variants"] = variants
+        out.append(_clean_value(d))
+    return out
+
+
+@api.post("/experiments/{experiment_id}/decide")
+async def experiment_decide_route(experiment_id: str, data: ExperimentDecisionInput,
+                                  user: dict = Depends(get_current_user)):
+    try:
+        return _clean_value(await eng.experiment_decide(user, experiment_id, data))
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+
+
+# ---------------- MODULE L: ATTRIBUTION & REVENUE ----------------
+@api.post("/attribution/touch")
+async def attribution_touch_route(data: AttributionTouchInput, user: dict = Depends(get_current_user)):
+    try:
+        return _clean_value(await eng.attribution_touch(user, data))
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+
+
+@api.post("/revenue")
+async def revenue_record_route(data: RevenueEventInput, user: dict = Depends(get_current_user)):
+    try:
+        return _clean_value(await eng.revenue_record(user, data))
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+
+
+@api.get("/revenue")
+async def revenue_list_route(client_id: str = None, user: dict = Depends(get_current_user)):
+    return _clean_value(await eng.revenue_list(user, _scoped_client(user, client_id)))
+
+
+@api.get("/attribution/report")
+async def attribution_report_route(client_id: str = None, user: dict = Depends(get_current_user)):
+    return _clean_value(await eng.attribution_report(user, _scoped_client(user, client_id)))
+
+
+# ---------------- MODULE O: REVENUE INTELLIGENCE / LEARNING ----------------
+@api.get("/learning")
+async def learning_list_route(client_id: str = None, user: dict = Depends(get_current_user)):
+    return _clean_value(await eng.learning_records(user, _scoped_client(user, client_id)))
+
+
+@api.post("/learning/generate")
+async def learning_generate_route(client_id: str = None, user: dict = Depends(get_current_user)):
+    try:
+        return _clean_value(await eng.weekly_learning_report(user, _scoped_client(user, client_id)))
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        logger.error(f"learning generation failed: {e}")
+        raise HTTPException(500, "Learning report generation failed")
+
+
+# ---------------- MODULE Q: AUTONOMY POLICY & GOVERNANCE ----------------
+@api.get("/policy")
+async def policy_get_route(client_id: str = None, user: dict = Depends(get_current_user)):
+    return _clean_value(await eng.policy_get(user, _scoped_client(user, client_id)))
+
+
+@api.post("/policy")
+async def policy_set_route(data: PolicyInput, user: dict = Depends(get_current_user)):
+    try:
+        result = await eng.policy_set(user, data)
+        result["client_id"] = _scoped_client(user, data.client_id)
+        return result
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+
+
+@api.post("/policy/kill-switch")
+async def kill_switch_route(body: dict, user: dict = Depends(get_current_user)):
+    active = bool(body.get("active", True))
+    return _clean_value(await eng.kill_switch(user, active))
+
+
+# ---------------- TELEMETRY & AUDIT FEEDS ----------------
+@api.get("/events")
+async def events_feed_route(event_type: str = None, client_id: str = None,
+                            user: dict = Depends(get_current_user)):
+    return _clean_value(await eng.events_feed(user, _scoped_client(user, client_id), event_type=event_type))
+
+
+@api.get("/audit")
+async def audit_feed_route(client_id: str = None, user: dict = Depends(get_current_user)):
+    return _clean_value(await eng.audit_feed(user, _scoped_client(user, client_id)))
 
 
 app.include_router(api)

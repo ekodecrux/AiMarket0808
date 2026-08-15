@@ -21,6 +21,10 @@ import Analytics from "@/pages/Analytics";
 import Agents from "@/pages/Agents";
 import Clients from "@/pages/Clients";
 import Integrations from "@/pages/Integrations";
+import MissionPlanner from "@/pages/MissionPlanner";
+import Brain from "@/pages/Brain";
+import Intelligence from "@/pages/Intelligence";
+import Learning from "@/pages/Learning";
 function Protected({ children }) {
   const { user, loading } = useAuth();
   if (loading || user === null)
@@ -45,6 +49,7 @@ const routes = [
   ["/strategy", Strategy], ["/content", ContentStudio],
   ["/social", Social], ["/campaigns", Campaigns], ["/budget", BudgetPlanner], ["/leads", Leads],
   ["/sales", SalesAssistant], ["/radar", CompetitorRadar], ["/analytics", Analytics],
+  ["/missions", MissionPlanner], ["/brain", Brain], ["/intel", Intelligence], ["/learning", Learning],
   ["/clients", Clients], ["/settings", Integrations], ["/integrations", Integrations], ["/agents", Agents],
 ];
 
