@@ -26,6 +26,7 @@ from engine_models import (
     AttributionTouchInput, RevenueEventInput, PolicyInput,
 )
 import engine as eng
+import agents as ag
 from auth import create_auth_router, seed_admin, hash_password
 import ai
 import intel
@@ -50,8 +51,17 @@ async def lifespan(app: FastAPI):
     try:
         eng.bind_db(db)
         await eng._ensure_indexes()
+        ag.bind_db(db)
+        await ag._ensure_indexes()
+        ag.start_scheduler()
     except Exception as e:
         logger.warning(f"engine init failed: {e}")
+    try:
+        await db.brain_chunks.create_index("tenant_key")
+        await db.brain_chunks.create_index("keywords")
+        await db.brain_chunks.create_index("embedding")
+    except Exception as e:
+        logger.warning(f"vector indexes failed: {e}")
     creds = ROOT_DIR.parent / "memory" / "test_credentials.md"
     try:
         creds.write_text(
@@ -72,6 +82,7 @@ async def lifespan(app: FastAPI):
     autopilot_task = asyncio.create_task(_autopilot_loop())
     yield
     autopilot_task.cancel()
+    ag.stop_scheduler()
     client.close()
 
 
@@ -1409,6 +1420,69 @@ async def policy_set_route(data: PolicyInput, user: dict = Depends(get_current_u
 async def kill_switch_route(body: dict, user: dict = Depends(get_current_user)):
     active = bool(body.get("active", True))
     return _clean_value(await eng.kill_switch(user, active))
+
+
+# ---------------- SCHEDULED AGENTS ----------------
+@api.get("/agents/kinds")
+async def agent_kinds_route(user: dict = Depends(get_current_user)):
+    return {k: {"name": v["name"], "description": v["description"],
+                "min_autonomy": v["policy"]} for k, v in ag.AGENT_KINDS.items()}
+
+
+@api.post("/agents/schedules")
+async def agent_schedule_create_route(body: dict, user: dict = Depends(get_current_user)):
+    try:
+        return _clean_value(await ag.schedule_create(
+            user,
+            _scoped_client(user, body.get("client_id")),
+            name=body.get("name", ""),
+            kind=body.get("kind", ""),
+            recurrence_kind=body.get("recurrence_kind", "daily"),
+            recurrence_value=body.get("recurrence_value"),
+            enabled=bool(body.get("enabled", True)),
+            params=body.get("params") or {},
+        ))
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+
+
+@api.get("/agents/schedules")
+async def agent_schedule_list_route(client_id: str = None, user: dict = Depends(get_current_user)):
+    return _clean_value(await ag.schedule_list(user, _scoped_client(user, client_id)))
+
+
+@api.delete("/agents/schedules/{schedule_id}")
+async def agent_schedule_delete_route(schedule_id: str, user: dict = Depends(get_current_user)):
+    try:
+        return _clean_value(await ag.schedule_delete(user, schedule_id))
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+
+
+@api.post("/agents/schedules/{schedule_id}/toggle")
+async def agent_schedule_toggle_route(schedule_id: str, body: dict,
+                                      user: dict = Depends(get_current_user)):
+    try:
+        return _clean_value(await ag.schedule_toggle(user, schedule_id,
+                                                     bool(body.get("enabled", True))))
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+
+
+@api.post("/agents/schedules/{schedule_id}/run")
+async def agent_schedule_run_route(schedule_id: str, user: dict = Depends(get_current_user)):
+    try:
+        return _clean_value(await ag.run_schedule(user, schedule_id, manual=True))
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        logger.error(f"agent run failed: {e}")
+        raise HTTPException(500, "Agent run failed")
+
+
+@api.get("/agents/runs")
+async def agent_runs_route(client_id: str = None, user: dict = Depends(get_current_user)):
+    return _clean_value(await ag.run_list(user, _scoped_client(user, client_id)))
 
 
 # ---------------- TELEMETRY & AUDIT FEEDS ----------------

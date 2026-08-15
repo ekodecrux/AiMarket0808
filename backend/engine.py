@@ -24,6 +24,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 
 import ai as ai_service
+from ai_embeddings import embed_async as _embed_async
 from engine_models import (
     BrainIngestInput, BrainQueryInput, MissionInput, ExperimentInput,
     ExperimentDecisionInput, AttributionTouchInput, RevenueEventInput,
@@ -285,28 +286,51 @@ async def brain_ingest(user: dict, data: BrainIngestInput) -> dict:
     src_res = await _db.brain_sources.insert_one(source_doc)
 
     inserted = 0
+    embedded = 0
+    batch = []
     for idx, chunk in enumerate(chunks):
-        kw = _extract_keywords(chunk)
-        await _db.brain_chunks.insert_one({
-            "tenant_key": tenant_key,
-            "source_id": str(src_res.inserted_id),
-            "url": data.url,
-            "title": title,
-            "kind": source_type,
-            "chunk_index": idx,
-            "text": chunk,
-            "keywords": kw,
-            "created_at": _now_iso(),
-        })
-        inserted += 1
+        batch.append((idx, _extract_keywords(chunk), chunk))
+    # Embed chunks in batches of 32 (local ONNX or GROQ provider).
+    for i in range(0, len(batch), 32):
+        slice_batch = batch[i:i + 32]
+        try:
+            vecs = await _embed_async([b[2][:1500] for b in slice_batch])
+        except Exception as e:
+            logger.warning(f"brain embedding batch failed: {e}")
+            vecs = [None] * len(slice_batch)
+        for (idx, kw, chunk), vec in zip(slice_batch, vecs):
+            if vec:
+                vec = [float(x) for x in vec]  # ensure plain floats for BSON/JSON
+            doc = {
+                "tenant_key": tenant_key,
+                "source_id": str(src_res.inserted_id),
+                "url": data.url,
+                "title": title,
+                "kind": source_type,
+                "chunk_index": idx,
+                "text": chunk,
+                "keywords": kw,
+                "created_at": _now_iso(),
+            }
+            if vec:
+                doc["embedding"] = vec
+                embedded += 1
+            await _db.brain_chunks.insert_one(doc)
+        inserted += len(slice_batch)
 
     await emit_event(user, "BrainIngested", client_id=data.client_id,
                      payload={"title": title, "kind": source_type, "chunks": inserted, "removed": removed})
     await record_audit(user, "brain.ingest", client_id=data.client_id,
                        detail={"title": title, "kind": source_type, "chunks": inserted, "removed": removed})
+    from ai_embeddings import provider_info
+    embed_note = f" ({embedded} vector-embedded)" if embedded else " (keyword index only)"
+    await _db.brain_sources.update_one({"_id": src_res.inserted_id},
+                                       {"$set": {"embedding_count": embedded}})
     return {"title": title, "chunks": inserted, "removed": removed,
+            "embedded": embedded,
             "source_id": str(src_res.inserted_id),
-            "message": f"Brain updated: {inserted} chunks from {title}"}
+            "message": f"Brain updated: {inserted} chunks{embed_note} from {title}",
+            "embedding_provider": provider_info().get("provider")}
 
 
 async def brain_sources(user: dict, client_id: str = None) -> list:
@@ -343,33 +367,117 @@ async def brain_remove_source(user: dict, source_id: str, client_id: str = None)
 
 
 async def brain_retrieve(user: dict, data: BrainQueryInput) -> dict:
+    """Hybrid retrieval: semantic (cosine over stored embeddings) + keyword
+    overlap, fused and re-ranked. Optionally synthesizes a grounded answer
+    from the top passages."""
     if _db is None:
         return {"results": []}
     tenant_key = _tenant_key(user, data.client_id)
+    top_k = min(max(int(data.top_k or 5), 1), 15)
     q_words = [w for w in re.findall(r"[A-Za-z0-9][A-Za-z0-9'.&+%-]{1,}", data.query) if len(w) > 2]
     q_words = [w for w in q_words if w.lower() not in _STOPWORDS]
-    cursor = _db.brain_chunks.find({"tenant_key": tenant_key})
+
+    # ---------- semantic pass ----------
+    semantic_hits = []
+    try:
+        qvecs = await _embed_async([data.query[:1500]])
+        if qvecs and qvecs[0]:
+            qvec = qvecs[0]
+            # Cosine similarity via dot product on CPU: load chunks with vectors.
+            from ai_embeddings import cosine
+            chunks = await _db.brain_chunks.find({"tenant_key": tenant_key,
+                                                  "embedding": {"$exists": True}}).to_list(5000)
+            for chunk in chunks:
+                s = cosine(qvec, chunk.get("embedding", []))
+                if s <= 0.15:
+                    continue
+                semantic_hits.append((s, chunk))
+            semantic_hits.sort(key=lambda kv: -kv[0])
+            semantic_hits = semantic_hits[: top_k * 2]
+    except Exception as e:
+        logger.warning(f"semantic retrieval failed: {e}")
+
+    # ---------- keyword pass ----------
+    kw_hits = []
+    if q_words:
+        chunks_all = await _db.brain_chunks.find({"tenant_key": tenant_key}).to_list(5000)
+        for chunk in chunks_all:
+            score = _score_chunk(q_words, chunk.get("keywords", []) or [], chunk.get("text", ""))
+            if score > 0:
+                kw_hits.append((min(1.0, score / 3.0), chunk))
+        kw_hits.sort(key=lambda kv: -kv[0])
+        kw_hits = kw_hits[: top_k * 2]
+
+    # ---------- hybrid fusion ----------
     results = []
     seen = set()
-    async for chunk in cursor:
-        score = _score_chunk(q_words, chunk.get("keywords", []) or [], chunk.get("text", ""))
-        if score <= 0:
-            continue
+    rank_map = {}
+    for rank, (s, chunk) in enumerate(semantic_hits):
         sig = (chunk.get("source_id"), chunk.get("chunk_index"))
+        rank_map.setdefault(sig, {}).setdefault("semantic", 0)
+        rank_map[sig]["semantic"] = 1.0 - (rank + 1) / max(len(semantic_hits), 1)
+        rank_map[sig]["chunk"] = chunk
+        rank_map[sig]["sem_score"] = s
+    for rank, (s, chunk) in enumerate(kw_hits):
+        sig = (chunk.get("source_id"), chunk.get("chunk_index"))
+        rank_map.setdefault(sig, {}).setdefault("kw", 0)
+        rank_map[sig]["kw"] = 1.0 - (rank + 1) / max(len(kw_hits), 1)
+        rank_map[sig]["chunk"] = chunk
+        rank_map[sig]["kw_score"] = s
+
+    semantic_only = bool(semantic_hits) and not kw_hits
+    for sig, meta in rank_map.items():
         if sig in seen:
             continue
         seen.add(sig)
+        chunk = meta.get("chunk")
+        if chunk is None:
+            continue
+        sem = meta.get("sem_score", 0.0)
+        kw = meta.get("kw_score", 0.0)
+        if not semantic_only and (sem <= 0 and kw <= 0):
+            continue
+        if semantic_only:
+            combined = 0.7 * sem + 0.3 * (kw or 0.0)
+        else:
+            combined = 0.6 * sem + 0.4 * kw
         results.append({
             "text": chunk.get("text", "")[:1400],
             "title": chunk.get("title"),
             "url": chunk.get("url"),
             "kind": chunk.get("kind"),
-            "score": round(score, 3),
+            "score": round(max(0.0, min(1.0, combined)), 3),
+            "semantic": round(sem, 3),
+            "keyword": round(kw, 3),
         })
     results.sort(key=lambda r: -r["score"])
-    results = results[: data.top_k or 5]
-    return {"query": data.query, "context_terms": q_words[:15], "results": results,
-            "message": "Retrieved business context with source attribution."}
+    results = results[:top_k]
+
+    # ---------- grounded answer synthesis (optional) ----------
+    answer = None
+    if getattr(data, "with_answer", False) and results:
+        context = "\n\n".join(f"[{r.get('kind', '')}] {r.get('title', '')}: {r['text']}" for r in results)
+        system = ("You are the Business Brain assistant. Answer strictly from the provided business "
+                  "context. If the context lacks the information, say so — never invent facts.")
+        try:
+            resp = await ai_service.generate_json(
+                f"brain-qa-{user['_id']}", system,
+                f"BUSINESS CONTEXT:\n{context}\n\nQUESTION: {data.query}\n\n"
+                "Return JSON: {\"answer\": \"concise grounded answer with source mentions\", "
+                "\"cited_sources\": [\"\"], \"confidence\": \"low|medium|high\"}")
+            answer = {"text": resp.get("answer", "").strip()[:1500],
+                      "cited_sources": resp.get("cited_sources", [])[:5],
+                      "confidence": resp.get("confidence", "medium")}
+        except Exception as e:
+            logger.warning(f"brain answer synthesis failed: {e}")
+
+    retrieval_mode = "hybrid" if (semantic_hits and kw_hits) else ("semantic" if semantic_hits else "keyword")
+    out = {"query": data.query, "context_terms": q_words[:15], "results": results,
+           "retrieval_mode": retrieval_mode,
+           "message": "Retrieved business context with source attribution via vector + keyword retrieval."}
+    if answer is not None:
+        out["answer"] = answer
+    return out
 
 
 def _context_block_for(user_ctx: dict) -> str:
@@ -383,11 +491,22 @@ def _context_block_for(user_ctx: dict) -> str:
 # ---------------------------------------------------------------------------
 
 async def _retrieve_context(user: dict, client_id: str) -> str:
+    """Pull tenant-approved business context for mission/scoring prompts using
+    the vector-augmented brain retrieval."""
     try:
-        q = BrainQueryInput(client_id=client_id, query="business products offer audience pricing claims", top_k=4)
+        q = BrainQueryInput(client_id=client_id,
+                            query="business products services offer audience pricing claims positioning",
+                            top_k=6)
         ctx = await brain_retrieve(user, q)
-        parts = [f"- [{r['kind']}] {r['title']}: {r['text'][:400]}" for r in ctx.get("results", []) if r.get("text")]
-        return "\n".join(parts) if parts else ""
+        parts = []
+        seen = set()
+        for r in ctx.get("results", []):
+            sig = (r.get("url"), r.get("title"))
+            if sig in seen or not r.get("text"):
+                continue
+            seen.add(sig)
+            parts.append(f"- [{r.get('kind', '')}] {r.get('title')}: {r['text'][:400]}")
+        return "\n".join(parts[:6])
     except Exception as e:
         logger.warning(f"context retrieval failed: {e}")
         return ""

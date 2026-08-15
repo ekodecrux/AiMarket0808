@@ -24,6 +24,7 @@ class BrainQueryInput(BaseModel):
     client_id: Optional[str] = None
     query: str = Field(..., max_length=2000)
     top_k: Optional[int] = 5
+    with_answer: Optional[bool] = False   # synthesize a grounded LLM answer from retrieved context
 
 
 # ---------- Marketing Mission & Plan ----------

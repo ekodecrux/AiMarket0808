@@ -62,7 +62,7 @@ export default function Brain() {
     if (query.trim().length < 3) return toast.error("Enter a longer query");
     setSearching(true);
     try {
-      const { data } = await api.post("/brain/query", { query, top_k: 5 });
+      const { data } = await api.post("/brain/query", { query, top_k: 6, with_answer: true });
       setResults(data);
     } catch (e) {
       toast.error(formatApiError(e.response?.data?.detail));
@@ -142,7 +142,7 @@ export default function Brain() {
                 {busy ? <><CircleNotch size={15} className="animate-spin" /> Ingesting…</> : <><Plus size={15} /> Add to Brain</>}
               </button>
               <p className="text-[11px] text-zinc-500">
-                Content is chunked, keyword-indexed and scoped to your workspace. Re-ingesting the same URL replaces the old chunks.
+                Content is chunked, vector-embedded and keyword-indexed, then scoped to your workspace. Re-ingesting the same URL replaces the old chunks.
               </p>
             </div>
           </Section>
@@ -215,6 +215,28 @@ export default function Brain() {
                 </Section>
               ) : (
                 <div className="space-y-3">
+                  {results.answer && results.answer.text && (
+                    <Section title="Answer" className="border-l-4 border-l-[#16A34A]">
+                      <div className="flex items-start gap-3">
+                        <Sparkle size={18} className="text-[#16A34A] shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm text-zinc-800 leading-relaxed">{results.answer.text}</p>
+                          <div className="flex flex-wrap items-center gap-3 mt-2 text-[10px] uppercase tracking-wider font-mono text-zinc-500">
+                            <span className={`px-2 py-0.5 border ${results.answer.confidence === "high" ? "border-[#16A34A] text-[#16A34A]" : "border-zinc-400"}`}>
+                              confidence: {results.answer.confidence}
+                            </span>
+                            {results.answer.cited_sources?.length > 0 && (
+                              <span>sources: {results.answer.cited_sources.join(", ")}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </Section>
+                  )}
+                  <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-wider font-mono text-zinc-500 border border-border px-3 py-2 bg-white">
+                    <Sparkle size={12} className="text-[#2563EB]" />
+                    retrieval: {results.retrieval_mode || "hybrid"} · matched terms: {results.context_terms?.join(", ")}
+                  </div>
                   {results.results.map((r, i) => (
                     <div key={i} className="border border-border bg-white">
                       <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-border bg-zinc-50">
@@ -229,17 +251,13 @@ export default function Brain() {
                             </a>
                           )}
                           <span className="text-[10px] uppercase tracking-wider font-mono text-zinc-500">
-                            relevance {Math.round(r.score * 100)}%
+                            sem {Math.round((r.semantic ?? 0) * 100)}% · kw {Math.round((r.keyword ?? 0) * 100)}%
                           </span>
                         </div>
                       </div>
                       <div className="px-4 py-3 text-sm text-zinc-700 leading-relaxed">{r.text}</div>
                     </div>
                   ))}
-                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-mono text-zinc-500 border border-border px-3 py-2">
-                    <Sparkle size={12} className="text-[#2563EB]" />
-                    Matched context terms: {results.context_terms?.join(", ")}
-                  </div>
                 </div>
               )}
             </Fade>
@@ -249,11 +267,11 @@ export default function Brain() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-zinc-600">
               <div className="flex gap-2">
                 <Brain size={16} className="text-[#2563EB] shrink-0" />
-                <p><b className="text-zinc-900">Ingest.</b> Websites are crawled and chunked into 600-character passages. Documents, claims and campaign memories are indexed the same way.</p>
+                <p><b className="text-zinc-900">Ingest.</b> Websites are crawled and chunked into passages, each converted to a vector embedding and a keyword index side by side.</p>
               </div>
               <div className="flex gap-2">
                 <MagnifyingGlass size={16} className="text-[#2563EB] shrink-0" />
-                <p><b className="text-zinc-900">Retrieve.</b> Every AI generation pulls the highest-relevance passages for your workspace only — never generic knowledge.</p>
+                <p><b className="text-zinc-900">Retrieve.</b> Semantic vectors catch meaning, keywords catch exact terms — the two are fused and re-ranked so every AI generation pulls the strongest workspace passages only.</p>
               </div>
               <div className="flex gap-2">
                 <ShieldCheck size={16} className="text-[#2563EB] shrink-0" />
