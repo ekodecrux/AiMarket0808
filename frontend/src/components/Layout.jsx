@@ -5,6 +5,7 @@ import { useClient } from "@/context/ClientContext";
 import {
   ChartLineUp, Strategy, PenNib, ShareNetwork, Megaphone,
   UsersThree, ChatCircleText, ChartBar, Robot, SignOut, List, X, Lightning, Crosshair,
+  MagnifyingGlass,
   Buildings, PlugsConnected, CaretDown, ChartPieSlice, Path, SealCheck,
   Target, Users, Lightbulb,
 } from "@phosphor-icons/react";
@@ -27,6 +28,7 @@ const NAV = [
     { to: "/leads", label: "Lead Management", icon: UsersThree, id: "leads" },
     { to: "/sales", label: "Sales Assistant", icon: ChatCircleText, id: "sales" },
     { to: "/radar", label: "Competitor Radar", icon: Crosshair, id: "radar" },
+    { to: "/seo", label: "SEO & Keywords", icon: MagnifyingGlass, id: "seo" },
   ]},
   { section: "Engine Intelligence", items: [
     { to: "/missions", label: "Mission Planner", icon: Target, id: "missions" },

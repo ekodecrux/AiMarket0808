@@ -19,6 +19,7 @@ from models import (
     ClientInput, ConnectionInput, PortalUserInput, SendEmailInput, CrmSyncInput,
     ProfileInput, ExtractProfileInput, BudgetPlanInput,
     ProposalGenerateInput, ProposalActionInput, AutopilotConfigInput, now_utc,
+    SeoInput, SeoKeywordInput,
 )
 from engine_models import (
     BrainIngestInput, BrainQueryInput, MissionInput, MissionActionInput,
@@ -27,6 +28,7 @@ from engine_models import (
 )
 import engine as eng
 import agents as ag
+import seo as seo_mod
 from auth import create_auth_router, seed_admin, hash_password
 import ai
 import intel
@@ -767,6 +769,56 @@ async def discover_trends(data: TrendInput, user: dict = Depends(get_current_use
     except Exception as e:
         logger.error(f"trends failed: {e}")
         raise HTTPException(502, "Could not fetch trends")
+
+
+# ---------------- SEO & KEYWORD INTELLIGENCE (Module D) ----------------
+@api.post("/seo/audit")
+async def seo_audit(data: SeoInput, user: dict = Depends(get_current_user)):
+    try:
+        result = await seo_mod.crawl_tech_seo(data.url)
+    except Exception as e:
+        logger.error(f"seo audit failed: {e}")
+        raise HTTPException(502, "Could not crawl site for technical SEO audit")
+    return result
+
+
+@api.post("/seo/keywords")
+async def seo_keywords(data: SeoKeywordInput, user: dict = Depends(get_current_user)):
+    competitors = []
+    try:
+        competitors = await db.competitors.find({"user_id": _owner(user)}).limit(10).to_list(10)
+    except Exception:
+        pass
+    profile = None
+    try:
+        profile = await db.profiles.find_one({"user_id": _owner(user)})
+    except Exception:
+        pass
+    product_context = (profile or {}).get("description", "")
+    if not product_context:
+        product_context = "No business description provided in the profile"
+    try:
+        result = await seo_mod.discover_keywords(data.seeds or [], data.industry or "", competitors, product_context)
+    except Exception as e:
+        logger.error(f"seo keywords failed: {e}")
+        raise HTTPException(502, "Could not research keywords")
+    return result
+
+
+@api.post("/seo/briefs")
+async def seo_briefs(data: SeoKeywordInput, user: dict = Depends(get_current_user)):
+    profile = None
+    try:
+        profile = await db.profiles.find_one({"user_id": _owner(user)})
+    except Exception:
+        pass
+    product_context = (profile or {}).get("description", "")
+    keywords = data.keywords if isinstance(data.keywords, list) else []
+    try:
+        result = await seo_mod.keyword_briefs(keywords, data.industry or "", product_context)
+    except Exception as e:
+        logger.error(f"seo briefs failed: {e}")
+        raise HTTPException(502, "Could not generate content briefs")
     return result
 
 

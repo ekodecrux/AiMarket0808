@@ -151,6 +151,17 @@ class TrendInput(BaseModel):
     industry: str
 
 
+# ---------- SEO & Keyword Intelligence (Module D) ----------
+class SeoInput(BaseModel):
+    url: str
+
+
+class SeoKeywordInput(BaseModel):
+    seeds: list = []
+    industry: str = ""
+    keywords: list = []
+
+
 # ---------- Clients (Agency multi-tenant) ----------
 class ClientInput(BaseModel):
     name: str
