@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, Depends, HTTPException
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, Request
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -6,6 +6,13 @@ from bson import ObjectId
 import os
 import asyncio
 import logging
+import hashlib
+import hmac
+import base64
+import json
+import secrets
+import urllib.parse
+import urllib.request
 from pathlib import Path
 from contextlib import asynccontextmanager
 
@@ -17,7 +24,7 @@ from models import (
     SalesAssistantInput, CampaignInput, CampaignMetricsInput,
     SocialPostInput, SchedulePostInput, CompetitorInput, TrendInput,
     ClientInput, ConnectionInput, PortalUserInput, SendEmailInput, CrmSyncInput,
-    ProfileInput, ExtractProfileInput, BudgetPlanInput,
+    ProfileInput, ExtractProfileInput, BudgetPlanInput, PaymentCheckoutInput,
     ProposalGenerateInput, ProposalActionInput, AutopilotConfigInput, now_utc,
     SeoInput, SeoKeywordInput,
 )
@@ -47,6 +54,14 @@ db = client[os.environ["DB_NAME"]]
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await db.users.create_index("email", unique=True)
+    await db.users.create_index("tenant_id")
+    await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
+    await db.password_reset_tokens.create_index("token_hash", unique=True)
+    await db.auth_rate_limits.create_index("expires_at", expireAfterSeconds=0)
+    await db.auth_rate_limits.create_index([("kind", 1), ("key_hash", 1)])
+    await db.payments.create_index([("tenant_id", 1), ("created_at", -1)])
+    await db.payments.create_index([("provider", 1), ("provider_reference", 1)], unique=True, sparse=True)
+    await db.payment_events.create_index([("provider", 1), ("provider_event_id", 1)], unique=True)
     await seed_admin(db)
     await seed_email_connection(db)
     await seed_twilio_verify_connection(db)
@@ -64,23 +79,6 @@ async def lifespan(app: FastAPI):
         await db.brain_chunks.create_index("embedding")
     except Exception as e:
         logger.warning(f"vector indexes failed: {e}")
-    creds = ROOT_DIR.parent / "memory" / "test_credentials.md"
-    try:
-        creds.write_text(
-            "# Test Credentials\n\n"
-            "## Admin\n"
-            f"- Email: {os.environ.get('ADMIN_EMAIL')}\n"
-            f"- Password: {os.environ.get('ADMIN_PASSWORD')}\n"
-            f"- Phone (OTP/SMS): {os.environ.get('ADMIN_PHONE')}\n"
-            "- Role: admin\n\n"
-            "## Auth endpoints\n"
-            "- POST /api/auth/register\n- POST /api/auth/login\n"
-            "- POST /api/auth/logout\n- GET /api/auth/me\n"
-            "- POST /api/auth/otp/request  (email -> SMTP code; phone -> Twilio Verify SMS)\n"
-            "- POST /api/auth/otp/verify\n"
-        )
-    except Exception as e:
-        logger.warning(f"could not write creds: {e}")
     autopilot_task = asyncio.create_task(_autopilot_loop())
     yield
     autopilot_task.cancel()
@@ -150,6 +148,157 @@ def _scoped_client(user: dict, client_id: str = None) -> str:
     if user.get("role") == "client":
         return user.get("client_id")
     return client_id
+
+
+def _tenant_key(user: dict) -> str:
+    """Use the owner tenant for portal users and an isolated tenant key for every workspace."""
+    return user.get("tenant_id") or _owner(user)
+
+
+PAYMENT_PROVIDERS = {
+    "stripe": {"label": "Stripe", "secret": "STRIPE_SECRET_KEY", "webhook": "STRIPE_WEBHOOK_SECRET"},
+    "razorpay": {"label": "Razorpay", "secret": "RAZORPAY_KEY_SECRET", "webhook": "RAZORPAY_WEBHOOK_SECRET"},
+    "paytm": {"label": "Paytm", "secret": "PAYTM_MERCHANT_KEY", "webhook": "PAYTM_MERCHANT_KEY"},
+}
+
+
+def _payment_plans() -> dict:
+    """Load an operator-controlled plan catalogue; client requests never define charge amounts."""
+    try:
+        catalog = json.loads(os.environ.get("BILLING_PLANS_JSON", "{}"))
+    except ValueError:
+        return {}
+    return catalog if isinstance(catalog, dict) else {}
+
+
+def _payment_gateway_ready(provider: str, webhook: bool = False) -> bool:
+    details = PAYMENT_PROVIDERS.get(provider)
+    if not details:
+        return False
+    if not os.environ.get(details["secret"]):
+        return False
+    if provider == "stripe" and webhook and not os.environ.get(details["webhook"]):
+        return False
+    if provider == "razorpay" and (not os.environ.get("RAZORPAY_KEY_ID") or (webhook and not os.environ.get(details["webhook"]))):
+        return False
+    if provider == "paytm" and (not os.environ.get("PAYTM_MID") or not os.environ.get("PAYTM_WEBSITE")):
+        return False
+    return True
+
+
+def _plan_for_checkout(code: str) -> dict:
+    plan = _payment_plans().get(code)
+    if not isinstance(plan, dict):
+        raise HTTPException(503, "Billing plans are not configured")
+    try:
+        amount_minor = int(plan["amount_minor"])
+    except (KeyError, ValueError, TypeError):
+        raise HTTPException(503, "Billing plan price is not configured")
+    currency = str(plan.get("currency", "INR")).upper()
+    if amount_minor <= 0 or len(currency) != 3:
+        raise HTTPException(503, "Billing plan configuration is invalid")
+    return {"code": code, "name": str(plan.get("name", code)), "amount_minor": amount_minor, "currency": currency}
+
+
+async def _payment_http_json(url: str, payload: dict, headers: dict) -> dict:
+    encoded = json.dumps(payload).encode("utf-8")
+    def send():
+        request = urllib.request.Request(url, data=encoded, headers={"Content-Type": "application/json", **headers})
+        with urllib.request.urlopen(request, timeout=15) as response:
+            return json.loads(response.read().decode("utf-8"))
+    try:
+        return await asyncio.to_thread(send)
+    except Exception as exc:
+        logger.warning("Payment gateway request failed: %s", exc)
+        raise HTTPException(502, "The payment gateway is temporarily unavailable")
+
+
+async def _create_provider_checkout(provider: str, payment: dict, plan: dict) -> dict:
+    payment_id = str(payment["_id"])
+    public_url = os.environ.get("PAYMENT_PUBLIC_BASE_URL", "https://aimarket.expertaitutor.com").rstrip("/")
+    if provider == "stripe":
+        payload = urllib.parse.urlencode({
+            "mode": "payment", "success_url": f"{public_url}/billing/success?payment_id={payment_id}",
+            "cancel_url": f"{public_url}/billing/cancel?payment_id={payment_id}",
+            "line_items[0][price_data][currency]": plan["currency"].lower(),
+            "line_items[0][price_data][product_data][name]": plan["name"],
+            "line_items[0][price_data][unit_amount]": plan["amount_minor"], "line_items[0][quantity]": 1,
+            "metadata[aimarket_payment_id]": payment_id,
+            "payment_intent_data[metadata][aimarket_payment_id]": payment_id,
+        }).encode("utf-8")
+        auth = base64.b64encode(f"{os.environ['STRIPE_SECRET_KEY']}:".encode("utf-8")).decode("ascii")
+        def create_stripe():
+            request = urllib.request.Request("https://api.stripe.com/v1/checkout/sessions", data=payload,
+                headers={"Authorization": f"Basic {auth}", "Content-Type": "application/x-www-form-urlencoded", "Idempotency-Key": payment_id})
+            with urllib.request.urlopen(request, timeout=15) as response:
+                return json.loads(response.read().decode("utf-8"))
+        try:
+            data = await asyncio.to_thread(create_stripe)
+        except Exception as exc:
+            logger.warning("Stripe checkout failed: %s", exc)
+            raise HTTPException(502, "Stripe checkout could not be created")
+        return {"provider_reference": data["id"], "checkout_url": data["url"]}
+    if provider == "razorpay":
+        auth = base64.b64encode(f"{os.environ['RAZORPAY_KEY_ID']}:{os.environ['RAZORPAY_KEY_SECRET']}".encode("utf-8")).decode("ascii")
+        data = await _payment_http_json("https://api.razorpay.com/v1/orders", {
+            "amount": plan["amount_minor"], "currency": plan["currency"], "receipt": payment_id[-40:],
+            "notes": {"aimarket_payment_id": payment_id, "tenant_id": payment["tenant_id"]},
+        }, {"Authorization": f"Basic {auth}"})
+        return {"provider_reference": data["id"], "checkout_url": None, "checkout_key": os.environ["RAZORPAY_KEY_ID"]}
+    if provider == "paytm":
+        try:
+            from PaytmChecksum import PaytmChecksum
+        except ImportError:
+            raise HTTPException(503, "Paytm server checksum support is not installed")
+        body = {"requestType": "Payment", "mid": os.environ["PAYTM_MID"], "websiteName": os.environ["PAYTM_WEBSITE"],
+            "orderId": payment_id, "callbackUrl": f"{public_url}/api/payments/webhooks/paytm",
+            "txnAmount": {"value": f"{plan['amount_minor'] / 100:.2f}", "currency": plan["currency"]},
+            "userInfo": {"custId": payment["tenant_id"]}}
+        signature = PaytmChecksum.generateSignature(json.dumps(body), os.environ["PAYTM_MERCHANT_KEY"])
+        host = "https://securegw-stage.paytm.in" if os.environ.get("PAYTM_ENV", "production") == "staging" else "https://securegw.paytm.in"
+        data = await _payment_http_json(f"{host}/theia/api/v1/initiateTransaction?mid={os.environ['PAYTM_MID']}&orderId={payment_id}",
+            {"body": body, "head": {"signature": signature}}, {})
+        result = data.get("body", {}).get("resultInfo", {})
+        token = data.get("body", {}).get("txnToken")
+        if result.get("resultStatus") != "S" or not token:
+            raise HTTPException(502, "Paytm checkout could not be created")
+        return {"provider_reference": payment_id, "checkout_url": f"{host}/theia/api/v1/showPaymentPage?mid={os.environ['PAYTM_MID']}&orderId={payment_id}&txnToken={token}"}
+    raise HTTPException(400, "Unsupported payment provider")
+
+
+def _verify_payment_webhook(provider: str, raw: bytes, headers, payload: dict) -> tuple[bool, str, str, bool, str | None]:
+    """Verify signed raw webhook bodies and extract event metadata without trusting a client redirect."""
+    if provider == "stripe":
+        header = headers.get("stripe-signature", "")
+        values = dict(part.split("=", 1) for part in header.split(",") if "=" in part)
+        timestamp, signature = values.get("t"), values.get("v1")
+        if not timestamp or not signature or abs(now_utc().timestamp() - int(timestamp)) > 300:
+            return False, "", "", False, None
+        expected = hmac.new(os.environ["STRIPE_WEBHOOK_SECRET"].encode(), f"{timestamp}.".encode() + raw, hashlib.sha256).hexdigest()
+        valid = hmac.compare_digest(expected, signature)
+        obj = payload.get("data", {}).get("object", {})
+        payment_id = obj.get("metadata", {}).get("aimarket_payment_id")
+        event_type = payload.get("type", "")
+        return valid, str(payload.get("id", "")), event_type, event_type in {"checkout.session.completed", "payment_intent.succeeded"} and obj.get("payment_status", "paid") == "paid", payment_id
+    if provider == "razorpay":
+        signature = headers.get("x-razorpay-signature", "")
+        expected = hmac.new(os.environ["RAZORPAY_WEBHOOK_SECRET"].encode(), raw, hashlib.sha256).hexdigest()
+        payment = payload.get("payload", {}).get("payment", {}).get("entity", {})
+        event_type = payload.get("event", "")
+        payment_id = payment.get("notes", {}).get("aimarket_payment_id")
+        event_id = payload.get("id") or hashlib.sha256(f"{event_type}:".encode() + raw).hexdigest()
+        return hmac.compare_digest(expected, signature), str(event_id), event_type, event_type in {"payment.captured", "order.paid"}, payment_id
+    if provider == "paytm":
+        try:
+            from PaytmChecksum import PaytmChecksum
+            checksum = payload.get("CHECKSUMHASH", "")
+            values = {k: v for k, v in payload.items() if k != "CHECKSUMHASH"}
+            valid = PaytmChecksum.verifySignature(values, os.environ["PAYTM_MERCHANT_KEY"], checksum)
+        except Exception:
+            valid = False
+        txn_id, order_id = str(payload.get("TXNID", "")), payload.get("ORDERID")
+        return valid, txn_id or hashlib.sha256(raw).hexdigest(), str(payload.get("STATUS", "")), payload.get("STATUS") == "TXN_SUCCESS", order_id
+    return False, "", "", False, None
 
 
 async def _get_scoped(collection, doc_id: str, user: dict):
@@ -862,6 +1011,91 @@ async def delete_client(cid: str, user: dict = Depends(get_current_user)):
     return {"message": "deleted"}
 
 
+# ---------------- PAYMENTS (tenant-scoped; provider confirmation only) ----------------
+@api.get("/payments/gateways")
+async def payment_gateways(user: dict = Depends(get_current_user)):
+    _require_owner(user)
+    return [{"provider": provider, "label": config["label"], "checkout_ready": _payment_gateway_ready(provider),
+             "webhook_ready": _payment_gateway_ready(provider, webhook=True), "plans_configured": bool(_payment_plans()),
+             "mode": "configuration_pending" if not _payment_gateway_ready(provider) else "ready"}
+            for provider, config in PAYMENT_PROVIDERS.items()]
+
+
+@api.get("/payments/plans")
+async def payment_plans(user: dict = Depends(get_current_user)):
+    _require_owner(user)
+    plans = []
+    for code in _payment_plans():
+        try:
+            plans.append(_plan_for_checkout(code))
+        except HTTPException:
+            continue
+    return plans
+
+
+@api.get("/payments")
+async def list_payments(client_id: str = None, user: dict = Depends(get_current_user)):
+    _require_owner(user)
+    query = {"tenant_id": _tenant_key(user)}
+    scoped = _scoped_client(user, client_id)
+    if scoped:
+        query["client_id"] = scoped
+    docs = await db.payments.find(query).sort("created_at", -1).to_list(200)
+    return [_serialize(doc) for doc in docs]
+
+
+@api.post("/payments/checkout")
+async def create_payment_checkout(data: PaymentCheckoutInput, user: dict = Depends(get_current_user)):
+    _require_owner(user)
+    provider = data.provider
+    if not _payment_gateway_ready(provider):
+        raise HTTPException(503, f"{PAYMENT_PROVIDERS[provider]['label']} is awaiting secure platform configuration")
+    plan = _plan_for_checkout(data.plan_code)
+    client_id = _scoped_client(user, data.client_id)
+    payment = {"tenant_id": _tenant_key(user), "owner_user_id": _owner(user), "client_id": client_id, "provider": provider,
+               "plan_code": plan["code"], "plan_name": plan["name"], "amount_minor": plan["amount_minor"], "currency": plan["currency"],
+               "status": "checkout_created", "created_at": now_utc(), "updated_at": now_utc()}
+    result = await db.payments.insert_one(payment)
+    payment["_id"] = result.inserted_id
+    try:
+        checkout = await _create_provider_checkout(provider, payment, plan)
+    except HTTPException:
+        await db.payments.update_one({"_id": result.inserted_id}, {"$set": {"status": "checkout_failed", "updated_at": now_utc()}})
+        raise
+    await db.payments.update_one({"_id": result.inserted_id}, {"$set": {**checkout, "updated_at": now_utc()}})
+    return {"payment_id": str(result.inserted_id), "provider": provider, "status": "checkout_created", **checkout}
+
+
+@api.post("/payments/webhooks/{provider}")
+async def payment_webhook(provider: str, request: Request):
+    if provider not in PAYMENT_PROVIDERS or not _payment_gateway_ready(provider, webhook=True):
+        raise HTTPException(503, "Payment webhook is not configured")
+    raw = await request.body()
+    try:
+        payload = urllib.parse.parse_qs(raw.decode("utf-8")) if provider == "paytm" else json.loads(raw)
+        if provider == "paytm":
+            payload = {key: values[-1] for key, values in payload.items()}
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        raise HTTPException(400, "Invalid payment webhook payload")
+    valid, event_id, event_type, paid, payment_id = _verify_payment_webhook(provider, raw, request.headers, payload)
+    if not valid or not event_id:
+        raise HTTPException(400, "Invalid payment webhook signature")
+    try:
+        await db.payment_events.insert_one({"provider": provider, "provider_event_id": event_id, "event_type": event_type,
+                                              "payload_hash": hashlib.sha256(raw).hexdigest(), "received_at": now_utc()})
+    except Exception as exc:
+        if exc.__class__.__name__ == "DuplicateKeyError":
+            return {"received": True, "duplicate": True}
+        raise
+    if paid and payment_id:
+        try:
+            payment = await db.payments.find_one({"_id": ObjectId(payment_id), "provider": provider})
+        except Exception:
+            payment = None
+        if payment:
+            await db.payments.update_one({"_id": payment["_id"], "status": {"$ne": "paid"}}, {"$set": {"status": "paid", "paid_at": now_utc(), "updated_at": now_utc(), "provider_event_id": event_id}})
+    return {"received": True}
+
 @api.post("/clients/{cid}/portal-user")
 async def create_portal_user(cid: str, data: PortalUserInput, user: dict = Depends(get_current_user)):
     _require_owner(user)
@@ -877,8 +1111,11 @@ async def create_portal_user(cid: str, data: PortalUserInput, user: dict = Depen
         "name": data.name or client.get("name", "Client"),
         "role": "client",
         "owner_id": _owner(user),
+        "tenant_id": user.get("tenant_id") or _owner(user),
         "client_id": cid,
-        "created_at": now_utc().isoformat(),
+        "token_version": 0,
+        "password_change_required": False,
+        "created_at": now_utc(),
     })
     return {"message": "Portal login created", "email": email}
 
@@ -956,6 +1193,255 @@ async def delete_connection(provider: str, client_id: str = None, user: dict = D
     _require_owner(user)
     await db.connections.delete_one({"user_id": _owner(user), "client_id": client_id if client_id else None, "provider": provider})
     return {"message": "deleted"}
+
+
+# ---------------- SECURE PROVIDER OAUTH ----------------
+# OAuth client secrets remain in server environment variables only. The mobile
+# client receives an official provider consent URL and never handles passwords,
+# two-factor codes, client secrets, refresh tokens, or access tokens.
+OAUTH_PROVIDERS = {
+    "google_ads": {
+        "authorize_url": "https://accounts.google.com/o/oauth2/v2/auth",
+        "token_url": "https://oauth2.googleapis.com/token",
+        "client_id_env": "GOOGLE_ADS_OAUTH_CLIENT_ID",
+        "client_secret_env": "GOOGLE_ADS_OAUTH_CLIENT_SECRET",
+        "scopes": ["https://www.googleapis.com/auth/adwords"],
+    },
+    "linkedin": {
+        "authorize_url": "https://www.linkedin.com/oauth/v2/authorization",
+        "token_url": "https://www.linkedin.com/oauth/v2/accessToken",
+        "client_id_env": "LINKEDIN_OAUTH_CLIENT_ID",
+        "client_secret_env": "LINKEDIN_OAUTH_CLIENT_SECRET",
+        "scopes": ["openid", "profile"],
+    },
+    "meta": {
+        "authorize_url": "https://www.facebook.com/v20.0/dialog/oauth",
+        "token_url": "https://graph.facebook.com/v20.0/oauth/access_token",
+        "client_id_env": "META_OAUTH_APP_ID",
+        "client_secret_env": "META_OAUTH_APP_SECRET",
+        "scopes": ["pages_show_list", "pages_read_engagement"],
+    },
+    "meta_ads": {
+        "authorize_url": "https://www.facebook.com/v20.0/dialog/oauth",
+        "token_url": "https://graph.facebook.com/v20.0/oauth/access_token",
+        "client_id_env": "META_OAUTH_APP_ID",
+        "client_secret_env": "META_OAUTH_APP_SECRET",
+        "scopes": ["ads_read"],
+    },
+}
+
+
+def _oauth_redirect_uri(provider: str) -> str:
+    base = os.environ.get("OAUTH_CALLBACK_BASE_URL", "https://aimarket.expertaitutor.com/api/connections/oauth")
+    return f"{base.rstrip('/')}/{provider}/callback"
+
+
+def _oauth_config(provider: str) -> dict:
+    config = OAUTH_PROVIDERS.get(provider)
+    if not config:
+        raise HTTPException(400, "OAuth is not supported for this provider")
+    client_id = os.environ.get(config["client_id_env"])
+    client_secret = os.environ.get(config["client_secret_env"])
+    if not client_id or not client_secret:
+        raise HTTPException(503, f"{provider} OAuth is not configured by the platform owner")
+    return {**config, "client_id": client_id, "client_secret": client_secret}
+
+
+async def _oauth_token_exchange(token_url: str, payload: dict) -> dict:
+    """Perform the authorization-code exchange server-to-server only."""
+    def exchange():
+        encoded = urllib.parse.urlencode(payload).encode("utf-8")
+        request = urllib.request.Request(token_url, data=encoded, headers={"Content-Type": "application/x-www-form-urlencoded"})
+        with urllib.request.urlopen(request, timeout=20) as response:
+            return json.loads(response.read().decode("utf-8"))
+    try:
+        return await asyncio.to_thread(exchange)
+    except Exception as exc:
+        logger.warning("OAuth token exchange failed: %s", exc)
+        raise HTTPException(502, "The provider token exchange failed")
+
+
+@api.post("/connections/oauth/{provider}/start")
+async def oauth_start(provider: str, body: dict, user: dict = Depends(get_current_user)):
+    _require_owner(user)
+    config = _oauth_config(provider)
+    role = body.get("connection_role", "customer")
+    if role not in {"customer", "owner_managed"}:
+        raise HTTPException(400, "Invalid connection role")
+    if role == "owner_managed" and not body.get("authorization_confirmed"):
+        raise HTTPException(400, "Owner-managed connections require explicit client authorization confirmation")
+    client_id = _scoped_client(user, body.get("client_id"))
+    state = secrets.token_urlsafe(32)
+    now = now_utc()
+    await db.oauth_states.insert_one({
+        "state_hash": hashlib.sha256(state.encode("utf-8")).hexdigest(),
+        "user_id": _owner(user), "client_id": client_id, "provider": provider,
+        "connection_role": role, "authorization_confirmed": bool(body.get("authorization_confirmed")),
+        "created_at": now.isoformat(), "expires_ts": now.timestamp() + 600, "used_at": None,
+    })
+    params = {
+        "response_type": "code", "client_id": config["client_id"],
+        "redirect_uri": _oauth_redirect_uri(provider), "scope": " ".join(config["scopes"]),
+        "state": state,
+    }
+    return {"provider": provider, "authorization_url": f"{config['authorize_url']}?{urllib.parse.urlencode(params)}",
+            "redirect_uri": _oauth_redirect_uri(provider), "expires_in_seconds": 600,
+            "message": "Complete consent only on the provider's official authorization page."}
+
+
+@api.get("/connections/oauth/{provider}/callback")
+async def oauth_callback(provider: str, request: Request, code: str = None, state: str = None, error: str = None):
+    if error:
+        return {"connected": False, "provider": provider, "message": "Provider consent was not completed", "provider_error": error}
+    if not code or not state:
+        raise HTTPException(400, "Missing OAuth authorization code or state")
+    config = _oauth_config(provider)
+    state_hash = hashlib.sha256(state.encode("utf-8")).hexdigest()
+    record = await db.oauth_states.find_one({"state_hash": state_hash, "provider": provider})
+    if not record or record.get("used_at") or record.get("expires_ts", 0) < now_utc().timestamp():
+        raise HTTPException(400, "OAuth state is invalid or expired")
+    await db.oauth_states.update_one({"_id": record["_id"], "used_at": None}, {"$set": {"used_at": now_utc().isoformat()}})
+    token = await _oauth_token_exchange(config["token_url"], {
+        "grant_type": "authorization_code", "code": code, "redirect_uri": _oauth_redirect_uri(provider),
+        "client_id": config["client_id"], "client_secret": config["client_secret"],
+    })
+    if not token.get("access_token"):
+        raise HTTPException(502, "Provider returned no access token")
+    encrypted = {key: ss.encrypt(str(value)) for key, value in token.items() if key in {"access_token", "refresh_token", "id_token", "token_type", "scope", "expires_in"} and value is not None}
+    doc = {
+        "user_id": record["user_id"], "client_id": record.get("client_id"), "provider": provider,
+        "credentials": encrypted, "auth_type": "oauth_authorization_code",
+        "connection_role": record.get("connection_role"), "authorization_confirmed": record.get("authorization_confirmed", False),
+        "token_obtained_at": now_utc().isoformat(), "updated_at": now_utc().isoformat(),
+    }
+    await db.connections.update_one({"user_id": record["user_id"], "client_id": record.get("client_id"), "provider": provider}, {"$set": doc}, upsert=True)
+    await db.audit_log.insert_one({"user_id": record["user_id"], "event": "OAuthConnectionCreated", "provider": provider,
+                                    "client_id": record.get("client_id"), "created_at": now_utc().isoformat(),
+                                    "request_path": str(request.url.path)})
+    return {"connected": True, "provider": provider, "message": "Connection authorized. You can return to AiMarket."}
+
+
+@api.post("/notifications/devices")
+async def register_notification_device(body: dict, user: dict = Depends(get_current_user)):
+    token = str(body.get("expo_push_token", "")).strip()
+    if not token:
+        raise HTTPException(400, "An Expo push token is required")
+    await db.notification_devices.update_one(
+        {"user_id": _owner(user), "token_hash": hashlib.sha256(token.encode()).hexdigest()},
+        {"$set": {"user_id": _owner(user), "token_hash": hashlib.sha256(token.encode()).hexdigest(),
+                  "encrypted_token": ss.encrypt(token), "platform": body.get("platform", "unknown"),
+                  "updated_at": now_utc().isoformat()}}, upsert=True,
+    )
+    return {"registered": True}
+
+
+async def _send_expo_approval_notifications(user_id: str, title: str, body: str, data: dict) -> int:
+    """Deliver budget-approval alerts to registered Expo devices without exposing tokens."""
+    devices = await db.notification_devices.find({"user_id": user_id}).to_list(50)
+    delivered = 0
+    for device in devices:
+        token = ss.decrypt(device.get("encrypted_token", ""))
+        if not token:
+            continue
+        payload = json.dumps({"to": token, "title": title, "body": body, "sound": "default", "data": data}).encode("utf-8")
+        def send():
+            request = urllib.request.Request("https://exp.host/--/api/v2/push/send", data=payload,
+                                             headers={"Content-Type": "application/json", "Accept": "application/json"})
+            with urllib.request.urlopen(request, timeout=12) as response:
+                return response.status
+        try:
+            status = await asyncio.to_thread(send)
+            delivered += 1 if 200 <= status < 300 else 0
+        except Exception as exc:
+            logger.warning("Expo approval notification failed for device %s: %s", device.get("_id"), exc)
+    return delivered
+
+
+# ---------------- PROVIDER-SPECIFIC BUDGET APPROVALS ----------------
+BUDGET_PROVIDER_GUARDRAILS = {
+    "google_ads": {"max_test_change_pct": 20.0, "requires_connected_provider": True},
+    "meta_ads": {"max_test_change_pct": 15.0, "requires_connected_provider": True},
+    "linkedin_ads": {"max_test_change_pct": 10.0, "requires_connected_provider": True},
+}
+
+
+@api.post("/budget/approval-requests")
+async def create_budget_approval_request(body: dict, user: dict = Depends(get_current_user)):
+    _require_owner(user)
+    provider = str(body.get("provider", ""))
+    rules = BUDGET_PROVIDER_GUARDRAILS.get(provider)
+    if not rules:
+        raise HTTPException(400, "Budget approvals are supported for Google Ads, Meta Ads, and LinkedIn Ads")
+    client_id = _scoped_client(user, body.get("client_id"))
+    try:
+        current = float(body.get("current_daily_budget", 0)); proposed = float(body.get("proposed_daily_budget", 0))
+    except (TypeError, ValueError):
+        raise HTTPException(400, "Current and proposed daily budgets must be valid numbers")
+    if current < 0 or proposed <= 0:
+        raise HTTPException(400, "Budget values must be positive")
+    policy = await eng.policy_get(user, client_id)
+    change_pct = abs(proposed - current) / current * 100 if current else 100.0
+    blockers = []
+    if policy.get("kill_switch"):
+        blockers.append("The global kill switch is active")
+    if policy.get("max_daily_spend") is not None and proposed > float(policy["max_daily_spend"]):
+        blockers.append("Proposed daily spend exceeds the policy cap")
+    max_change = min(float(policy.get("max_budget_change_pct") or 25.0), rules["max_test_change_pct"])
+    if change_pct > max_change:
+        blockers.append(f"Change exceeds the {max_change:.0f}% provider test cap")
+    connection = await db.connections.find_one({"user_id": _owner(user), "client_id": client_id, "provider": provider})
+    if rules["requires_connected_provider"] and not connection:
+        blockers.append("Official provider OAuth connection is required before execution")
+    request_doc = {
+        "user_id": _owner(user), "client_id": client_id, "provider": provider,
+        "current_daily_budget": current, "proposed_daily_budget": proposed, "change_pct": round(change_pct, 2),
+        "rationale": str(body.get("rationale", "")), "evidence": body.get("evidence", {}),
+        "policy_snapshot": {"max_daily_spend": policy.get("max_daily_spend"), "max_budget_change_pct": policy.get("max_budget_change_pct"), "kill_switch": policy.get("kill_switch")},
+        "status": "Blocked" if blockers else "PendingApproval", "blockers": blockers,
+        "execution_mode": "manual_provider_confirmation", "created_at": now_utc().isoformat(),
+    }
+    result = await db.budget_approval_requests.insert_one(request_doc)
+    request_doc["_id"] = result.inserted_id
+    devices = await db.notification_devices.count_documents({"user_id": _owner(user)})
+    delivered = await _send_expo_approval_notifications(
+        _owner(user), "Budget approval required" if not blockers else "Budget change blocked",
+        f"{provider.replace('_', ' ').title()}: {change_pct:.1f}% daily budget change is {request_doc['status'].lower()}.",
+        {"kind": "budget_approval", "budget_request_id": str(result.inserted_id), "status": request_doc["status"]},
+    )
+    await db.notification_events.insert_one({"user_id": _owner(user), "kind": "budget_approval", "budget_request_id": str(result.inserted_id),
+                                             "delivery_status": "sent" if delivered else ("failed" if devices else "no_registered_device"), "created_at": now_utc().isoformat()})
+    return _serialize(request_doc)
+
+
+@api.get("/budget/approval-requests")
+async def list_budget_approval_requests(client_id: str = None, user: dict = Depends(get_current_user)):
+    cid = _scoped_client(user, client_id)
+    query = {"user_id": _owner(user)}
+    if cid:
+        query["client_id"] = cid
+    docs = await db.budget_approval_requests.find(query).sort("created_at", -1).to_list(100)
+    return [_serialize(doc) for doc in docs]
+
+
+@api.post("/budget/approval-requests/{request_id}/decision")
+async def decide_budget_approval_request(request_id: str, body: dict, user: dict = Depends(get_current_user)):
+    _require_owner(user)
+    request_doc = await _get_scoped(db.budget_approval_requests, request_id, user)
+    decision = body.get("decision")
+    if decision not in {"approve", "reject"}:
+        raise HTTPException(400, "Decision must be approve or reject")
+    if request_doc.get("status") != "PendingApproval":
+        raise HTTPException(400, "Only pending requests can be decided")
+    status = "ApprovedForManualExecution" if decision == "approve" else "Rejected"
+    await db.budget_approval_requests.update_one({"_id": request_doc["_id"]}, {"$set": {"status": status, "decision_note": str(body.get("note", "")), "decided_at": now_utc().isoformat(), "decided_by": str(user["_id"])}})
+    delivered = await _send_expo_approval_notifications(
+        _owner(user), "Budget request approved" if decision == "approve" else "Budget request rejected",
+        "No provider budget was changed automatically. Review the manual provider-side confirmation before execution.",
+        {"kind": "budget_approval_decision", "budget_request_id": request_id, "status": status},
+    )
+    await db.notification_events.insert_one({"user_id": _owner(user), "kind": "budget_approval_decision", "budget_request_id": request_id,
+                                             "delivery_status": "sent" if delivered else "no_registered_device", "created_at": now_utc().isoformat()})
+    return {"id": request_id, "status": status, "message": "No provider budget was changed automatically; complete the provider-side confirmation after review."}
 
 
 # ---------------- LIVE: EMAIL SEND + CRM SYNC (use vault credentials) ----------------

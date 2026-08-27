@@ -1,0 +1,61 @@
+# Project TODO
+
+- [x] Restore secure production API session client and native sign-in flow
+- [x] Restore five-tab navigation and all major mobile workflows
+- [x] Restore NEXUS theme, workspace profile, and location-based currency behavior
+- [x] Optimize the generated NEXUS app icon below the checkpoint media limit
+- [x] Run type checks, linting, deterministic tests, and API contract validation
+- [x] Create a final project checkpoint and deliver the mobile app
+- [x] Add push notification permission, device registration, and agent approval alerts
+- [x] Add offline cache, connectivity awareness, automatic retry, and manual recovery controls
+- [x] Generate Play Store listing screenshots and prepare Android release metadata
+- [x] Validate and checkpoint the notifications, offline resilience, and store-release update
+- [x] Redesign the NEXUS login and core workspace surfaces for a more distinctive premium mobile command-center experience
+- [x] Benchmark essential marketing-tool categories and open-source knowledge, forecasting, and integration components
+- [x] Design a layperson-friendly connected-platform journey with approval safeguards and reusable knowledge-first workflows
+- [x] Build a connected-platform hub and framework-guided marketing workspace
+- [x] Add knowledge-first reuse, evidence confidence, and governed budget-optimization controls
+- [x] Validate and checkpoint the autonomous marketing operating system enhancement
+- [x] Define the Personal Brand operating model, LinkedIn-first workflows, and account-safety boundaries
+- [x] Build the Personal Brand workspace for positioning, LinkedIn profile review, thought leadership, and relationship planning
+- [x] Validate and checkpoint the Personal Brand mobile enhancement
+- [x] Remove excessive portrait gaps and apply consistent centered alignment across login and core workspace screens
+- [x] Validate and checkpoint the compact mobile layout refinement
+- [x] Add a dedicated Personal Branding dashboard menu with direct LinkedIn profile-optimization quick actions
+- [x] Validate and checkpoint the Personal Branding dashboard shortcut update
+- [x] Add professional-goal profile-copy variants in Personal Branding
+- [x] Add a weekly LinkedIn visibility routine with user-managed actions
+- [x] Add an approval-first review queue for LinkedIn post drafts
+- [x] Validate and checkpoint the expanded Personal Branding workflow
+- [x] Add editable LinkedIn post drafts with local revision history
+- [x] Add a Personal Brand progress scorecard for routine, profile, draft, and relationship progress
+- [x] Add user-controlled calendar reminders for the weekly LinkedIn visibility routine
+- [x] Validate and checkpoint the Personal Branding productivity enhancement
+- [x] Inspect secure production test-account provisioning options
+- [x] Create and verify a least-privilege AiMarket web and mobile test account
+- [x] Deliver the verified production website link and testing access details
+- [x] Audit owner-managed versus customer-managed platform connections, budget behavior, and Personal Branding mobile layout
+- [x] Design consent-based owner and customer credential connection flows with provider-specific human-action safeguards
+- [x] Implement connection-role controls, budget tracking verification, and mobile layout refinements
+- [x] Validate the test account end-to-end and checkpoint the credential and budget-control enhancement
+- [x] Audit production OAuth callback patterns, encrypted token storage options, and available provider configuration
+- [x] Implement secure OAuth callback handling and encrypted server-side social connection tokens
+- [x] Add provider-specific budget guardrails and approval notifications
+- [ ] Run an authenticated Android QA walkthrough for responsive connection and approval flows
+- [ ] Complete physical Android QA in Expo Go or an Android development build; this sandbox has no ADB, emulator, or attached device
+- [x] Validate and checkpoint the secure social connection and budget-control enhancement
+- [ ] Replace template authentication with multi-tenant JWT email login and tenant-scoped authorization
+- [ ] Add temporary password generation, SMTP reset links, and user-controlled password change flows
+- [ ] Remove remaining Manus-auth dependencies from the client-facing authentication path
+- [ ] Validate tenant isolation, password lifecycle security, SMTP delivery, and checkpoint the auth replacement
+- [ ] Add tenant-scoped Razorpay, Stripe, and Paytm checkout and verified webhook foundations
+- [ ] Add mobile billing gateway readiness and configuration-pending states
+- [ ] Validate payment webhook signature rejection, idempotency, tenant isolation, and gateway configuration readiness
+- [ ] Push the validated authentication and payment release to GitHub and deploy it to production
+- [ ] Add tenant-scoped Razorpay, Stripe, and Paytm checkout and verified webhook foundations
+- [ ] Add mobile billing gateway readiness and configuration-pending states
+- [ ] Validate payment webhook signature rejection, idempotency, tenant isolation, and gateway configuration readiness
+- [ ] Push the validated authentication and payment release to GitHub and deploy it to production
+- [ ] Audit remaining production website capabilities against the native mobile client and close material parity gaps
+- [ ] Prepare Android APK and AAB release builds and an iOS archive through the supported signed-build workflow
+- [ ] Package and attach the final mobile source code and all available signed release artifacts

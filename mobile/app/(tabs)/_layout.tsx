@@ -1,0 +1,6 @@
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { Tabs } from "expo-router";
+import { Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+const icons = { index: "home", campaigns: "campaign", plan: "lightbulb", intelligence: "psychology", automate: "smart-toy" } as const;
+export default function TabsLayout() { const insets = useSafeAreaInsets(); const bottom = Platform.OS === "web" ? 9 : Math.max(insets.bottom, 8); return <Tabs screenOptions={({ route }) => ({ headerShown: false, tabBarActiveTintColor: "#9EC3FF", tabBarInactiveTintColor: "#6E829E", tabBarStyle: { backgroundColor: "#08111F", height: 61 + bottom, paddingTop: 8, paddingBottom: bottom, borderTopColor: "#193250", borderTopWidth: 1 }, tabBarLabelStyle: { fontSize: 9, fontWeight: "900" }, tabBarIcon: ({ color, focused }) => <MaterialIcons name={icons[route.name as keyof typeof icons]} color={color} size={focused ? 23 : 21} /> })}><Tabs.Screen name="index" options={{ title: "Home" }} /><Tabs.Screen name="campaigns" options={{ title: "Campaigns" }} /><Tabs.Screen name="plan" options={{ title: "Plan" }} /><Tabs.Screen name="intelligence" options={{ title: "Intelligence" }} /><Tabs.Screen name="automate" options={{ title: "Automate" }} /></Tabs>; }

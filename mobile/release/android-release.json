@@ -1,0 +1,23 @@
+{
+  "applicationName": "AiMarket NEXUS",
+  "packageName": "com.expertaitutor.aimarket",
+  "versionName": "1.0.0",
+  "versionCode": 1,
+  "platform": "Android",
+  "minimumSdk": 24,
+  "releaseTrack": "internal",
+  "artifact": "Android App Bundle (.aab)",
+  "orientation": "portrait",
+  "permissions": [
+    "POST_NOTIFICATIONS",
+    "ACCESS_NETWORK_STATE",
+    "ACCESS_WIFI_STATE"
+  ],
+  "notificationChannel": "approvals",
+  "requiredBeforeProduction": [
+    "Create or connect the Expo Application Services project and record its project ID.",
+    "Configure Firebase Cloud Messaging for Android remote notifications.",
+    "Build and test a signed .aab on a physical Android device.",
+    "Provide the final privacy policy URL, support contact, and reviewer access instructions in Google Play Console."
+  ]
+}

@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
-from typing import Annotated, Any, Optional, List
+from typing import Annotated, Any, Optional, Literal
 from bson import ObjectId
-from pydantic import BaseModel, Field, BeforeValidator, ConfigDict
+from pydantic import BaseModel, Field, BeforeValidator, ConfigDict, EmailStr
 
 
 def _validate_object_id(v: Any) -> str:
@@ -23,9 +23,7 @@ class BaseDocument(BaseModel):
 
     @classmethod
     def from_mongo(cls, doc: dict):
-        if not doc:
-            return None
-        return cls(**doc)
+        return cls(**doc) if doc else None
 
     def to_mongo(self) -> dict:
         data = self.model_dump(by_alias=True, exclude_none=True)
@@ -35,19 +33,41 @@ class BaseDocument(BaseModel):
 
 # ---------- Auth ----------
 class RegisterInput(BaseModel):
-    email: str
-    password: str
-    name: str
+    email: EmailStr
+    name: str = Field(min_length=1, max_length=120)
     phone: Optional[str] = ""
+    password: Optional[str] = None
+    use_generated_password: bool = True
 
 
 class LoginInput(BaseModel):
-    email: str
-    password: str
+    email: EmailStr
+    password: str = Field(min_length=1, max_length=128)
+
+
+class PasswordResetRequestInput(BaseModel):
+    email: EmailStr
+    delivery: Literal["link", "temporary"] = "link"
+
+
+class PasswordResetConfirmInput(BaseModel):
+    token: str = Field(min_length=32, max_length=256)
+    password: str = Field(min_length=12, max_length=128)
+
+
+class PasswordChangeInput(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=12, max_length=128)
+
+
+class PaymentCheckoutInput(BaseModel):
+    provider: Literal["stripe", "razorpay", "paytm"]
+    plan_code: str = Field(min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$")
+    client_id: Optional[str] = None
 
 
 class OtpRequestInput(BaseModel):
-    identifier: str  # email or phone
+    identifier: str
 
 
 class OtpVerifyInput(BaseModel):
@@ -105,7 +125,7 @@ class ImportLeadsInput(BaseModel):
 
 class SalesAssistantInput(BaseModel):
     lead_id: str
-    action: str  # follow_up_email, whatsapp, objection_handling, summary
+    action: str
 
 
 # ---------- Campaigns ----------
@@ -151,7 +171,7 @@ class TrendInput(BaseModel):
     industry: str
 
 
-# ---------- SEO & Keyword Intelligence (Module D) ----------
+# ---------- SEO & Keyword Intelligence ----------
 class SeoInput(BaseModel):
     url: str
 
@@ -171,17 +191,17 @@ class ClientInput(BaseModel):
     notes: Optional[str] = ""
 
 
-# ---------- Connections (encrypted credential placeholders) ----------
+# ---------- Connections ----------
 class ConnectionInput(BaseModel):
     provider: str
-    client_id: Optional[str] = None  # which customer account this belongs to
+    client_id: Optional[str] = None
     credentials: dict = {}
 
 
 # ---------- Portal / Live integrations ----------
 class PortalUserInput(BaseModel):
-    email: str
-    password: str
+    email: EmailStr
+    password: str = Field(min_length=12, max_length=128)
     name: Optional[str] = ""
 
 
@@ -192,7 +212,7 @@ class SendEmailInput(BaseModel):
 
 
 class CrmSyncInput(BaseModel):
-    provider: str  # hubspot | zoho
+    provider: str
     client_id: Optional[str] = None
 
 
@@ -210,9 +230,8 @@ class ProfileInput(BaseModel):
 
 
 class AutopilotConfigInput(BaseModel):
-    daily_proposals: Optional[int] = None  # owner: proposals per day for this scope
-    cap: Optional[int] = None              # admin only: global max per day
-    client_id: Optional[str] = None
+    daily_proposals: Optional[int] = None
+    cap: Optional[int] = None
 
 
 class ProposalGenerateInput(BaseModel):
@@ -227,10 +246,10 @@ class ExtractProfileInput(BaseModel):
     url: str
 
 
-# ---------- Budget Planner (SEO-led) ----------
+# ---------- Budget Planner ----------
 class BudgetPlanInput(BaseModel):
     total_budget: float
-    period: str = "Monthly"          # Monthly | Quarterly | Annual
+    period: str = "Monthly"
     primary_goal: str = "Generate qualified leads"
     notes: Optional[str] = ""
     client_id: Optional[str] = None

@@ -26,9 +26,25 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  const register = async (name, email, password, phone) => {
-    const { data } = await api.post("/auth/register", { name, email, password, phone });
+  const register = async (name, email, password, phone, useGeneratedPassword = false) => {
+    const { data } = await api.post("/auth/register", { name, email, password, phone, use_generated_password: useGeneratedPassword });
     setUser(data.user);
+    return data;
+  };
+
+  const requestPasswordReset = async (email, delivery = "link") => {
+    const { data } = await api.post("/auth/password/reset/request", { email, delivery });
+    return data;
+  };
+
+  const confirmPasswordReset = async (token, password) => {
+    const { data } = await api.post("/auth/password/reset/confirm", { token, password });
+    return data;
+  };
+
+  const changePassword = async (currentPassword, newPassword) => {
+    const { data } = await api.post("/auth/password/change", { current_password: currentPassword, new_password: newPassword });
+    setUser(false);
     return data;
   };
 
@@ -51,7 +67,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, requestOtp, verifyOtp }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, requestOtp, verifyOtp, requestPasswordReset, confirmPasswordReset, changePassword }}>
       {children}
     </AuthContext.Provider>
   );

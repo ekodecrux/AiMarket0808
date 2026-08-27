@@ -3,149 +3,19 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { formatApiError } from "@/lib/api";
 import { toast } from "sonner";
-import { Lightning, ArrowRight, DeviceMobile } from "@phosphor-icons/react";
+import { ArrowRight, DeviceMobile, EnvelopeSimple, Lightning } from "@phosphor-icons/react";
+
+const Field = ({ label, value, onChange, type = "text", required = true }) => <div><label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">{label}</label><input type={type} required={required} value={value} onChange={(event) => onChange(event.target.value)} className="w-full bg-transparent border border-zinc-200 px-3 py-2.5 text-sm text-zinc-950 focus:outline-none focus:border-[#2563EB]" /></div>;
+const Notice = ({ children }) => <div className="text-sm text-[#2563EB] border border-[#2563EB]/30 bg-[#2563EB]/5 px-3 py-2">{children}</div>;
+const Submit = ({ busy, label }) => <button type="submit" disabled={busy} className="w-full flex items-center justify-center gap-2 bg-[#2563EB] text-white py-3 text-sm uppercase tracking-wider hover:bg-[#1D4ED8] disabled:opacity-50">{busy ? "Please wait" : label}<ArrowRight size={16} /></button>;
 
 export default function Login() {
-  const { login, register, requestOtp, verifyOtp } = useAuth();
-  const navigate = useNavigate();
-  const [method, setMethod] = useState("password"); // password | otp
-  const [mode, setMode] = useState("login"); // login | register (password only)
-  const [form, setForm] = useState({ name: "", email: "", password: "", phone: "" });
-  const [otp, setOtp] = useState({ identifier: "", code: "", sent: false, channel: "", sentTo: "" });
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  const submitPassword = async (e) => {
-    e.preventDefault();
-    setError(""); setBusy(true);
-    try {
-      if (mode === "login") await login(form.email, form.password);
-      else await register(form.name, form.email, form.password, form.phone);
-      navigate("/");
-    } catch (err) {
-      setError(formatApiError(err.response?.data?.detail) || err.message);
-    } finally { setBusy(false); }
-  };
-
-  const sendOtp = async (e) => {
-    e.preventDefault();
-    setError(""); setBusy(true);
-    try {
-      const data = await requestOtp(otp.identifier);
-      setOtp({ ...otp, sent: true, channel: data.channel, sentTo: data.sent_to });
-      toast.success(data.channel === "sms" ? `Code sent via SMS to ${data.sent_to}` : `Code sent to ${data.sent_to}`);
-    } catch (err) {
-      setError(formatApiError(err.response?.data?.detail) || err.message);
-    } finally { setBusy(false); }
-  };
-
-  const confirmOtp = async (e) => {
-    e.preventDefault();
-    setError(""); setBusy(true);
-    try {
-      await verifyOtp(otp.identifier, otp.code);
-      navigate("/");
-    } catch (err) {
-      setError(formatApiError(err.response?.data?.detail) || err.message);
-    } finally { setBusy(false); }
-  };
-
-  return (
-    <div className="noise-bg min-h-screen bg-background flex">
-      <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 border-r border-border relative z-10">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-[#2563EB] flex items-center justify-center"><Lightning weight="fill" className="text-white" size={18} /></div>
-          <span className="font-display font-bold tracking-tight">NEXUS</span>
-        </div>
-        <div>
-          <div className="text-xs font-bold uppercase tracking-[0.2em] text-[#2563EB] mb-4">Autonomous Marketing OS</div>
-          <h1 className="font-display text-5xl font-light leading-[1.05] tracking-tight max-w-lg">The world's first fully autonomous AI marketing engine.</h1>
-          <p className="text-zinc-500 mt-6 max-w-md text-sm leading-relaxed">From business profile to campaign reporting — planned, created, executed and optimized by a fleet of AI agents, with you in the loop.</p>
-        </div>
-        <div className="grid grid-cols-3 gap-px border border-border bg-border">
-          {[["90-95%", "Automated Ops"], ["12", "AI Agents"], ["∞", "Scale"]].map(([v, l]) => (
-            <div key={l} className="bg-white p-4"><div className="font-mono text-2xl">{v}</div><div className="text-[10px] uppercase tracking-wider text-zinc-500 mt-1">{l}</div></div>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex-1 flex items-center justify-center p-6 relative z-10">
-        <div className="w-full max-w-sm">
-          <div className="lg:hidden flex items-center gap-2 mb-8">
-            <div className="w-8 h-8 bg-[#2563EB] flex items-center justify-center"><Lightning weight="fill" className="text-white" size={18} /></div>
-            <span className="font-display font-bold tracking-tight">NEXUS</span>
-          </div>
-
-          {/* Method switch */}
-          <div className="flex border border-border mb-8">
-            {[["password", "Password"], ["otp", "OTP Login"]].map(([id, label]) => (
-              <button key={id} onClick={() => { setMethod(id); setError(""); }} data-testid={`method-${id}`}
-                className={`flex-1 py-2 text-xs uppercase tracking-wider transition-colors duration-200 ${method === id ? "bg-[#2563EB] text-white" : "text-zinc-500 hover:text-zinc-950"}`}>
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {method === "password" ? (
-            <>
-              <h2 className="font-display text-2xl font-medium tracking-tight mb-1">{mode === "login" ? "Sign in" : "Create account"}</h2>
-              <p className="text-sm text-zinc-500 mb-8">{mode === "login" ? "Access your marketing command center." : "Deploy your AI marketing fleet."}</p>
-              <form onSubmit={submitPassword} className="space-y-4">
-                {mode === "register" && <Field label="Full Name" type="text" value={form.name} onChange={(v) => setForm({ ...form, name: v })} testid="name-input" />}
-                <Field label="Email" type="email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} testid="email-input" />
-                {mode === "register" && <Field label="Phone (for OTP login)" type="tel" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} testid="phone-input" required={false} />}
-                <Field label="Password" type="password" value={form.password} onChange={(v) => setForm({ ...form, password: v })} testid="password-input" />
-                {error && <div className="text-sm text-[#2563EB] border border-[#2563EB]/30 bg-[#2563EB]/5 px-3 py-2" data-testid="auth-error">{error}</div>}
-                <button type="submit" disabled={busy} data-testid="submit-btn" className="w-full flex items-center justify-center gap-2 bg-[#2563EB] text-white py-3 text-sm uppercase tracking-wider hover:bg-[#1D4ED8] disabled:opacity-50 transition-colors duration-200">
-                  {busy ? "Please wait" : mode === "login" ? "Sign In" : "Create Account"} <ArrowRight size={16} />
-                </button>
-              </form>
-              <div className="mt-6 text-sm text-zinc-500">
-                {mode === "login" ? "No account? " : "Already registered? "}
-                <button onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }} className="text-white underline underline-offset-4 hover:text-[#2563EB] transition-colors duration-200" data-testid="toggle-mode-btn">
-                  {mode === "login" ? "Create one" : "Sign in"}
-                </button>
-              </div>
-              <div className="mt-8 pt-6 border-t border-border text-xs text-zinc-500 font-mono">Demo · admin@marketing.ai / admin123</div>
-            </>
-          ) : (
-            <>
-              <h2 className="font-display text-2xl font-medium tracking-tight mb-1 flex items-center gap-2"><DeviceMobile size={22} /> OTP Login</h2>
-              <p className="text-sm text-zinc-500 mb-8">Enter your email or registered phone. We'll send a one-time code.</p>
-              {!otp.sent ? (
-                <form onSubmit={sendOtp} className="space-y-4">
-                  <Field label="Email or Phone" type="text" value={otp.identifier} onChange={(v) => setOtp({ ...otp, identifier: v })} testid="otp-identifier" />
-                  {error && <div className="text-sm text-[#2563EB] border border-[#2563EB]/30 bg-[#2563EB]/5 px-3 py-2" data-testid="auth-error">{error}</div>}
-                  <button type="submit" disabled={busy} data-testid="request-otp-btn" className="w-full flex items-center justify-center gap-2 bg-[#2563EB] text-white py-3 text-sm uppercase tracking-wider hover:bg-[#1D4ED8] disabled:opacity-50 transition-colors duration-200">
-                    {busy ? "Sending" : "Send OTP"} <ArrowRight size={16} />
-                  </button>
-                </form>
-              ) : (
-                <form onSubmit={confirmOtp} className="space-y-4">
-                  <div className="text-sm border border-[#34C759]/40 bg-[#34C759]/5 text-[#34C759] px-3 py-2" data-testid="otp-sent">
-                    A 6-digit code was sent {otp.channel === "sms" ? "via SMS" : "to your email"}: <span className="font-mono">{otp.sentTo}</span>
-                  </div>
-                  <Field label="6-Digit Code" type="text" value={otp.code} onChange={(v) => setOtp({ ...otp, code: v })} testid="otp-code" />
-                  {error && <div className="text-sm text-[#2563EB] border border-[#2563EB]/30 bg-[#2563EB]/5 px-3 py-2" data-testid="auth-error">{error}</div>}
-                  <button type="submit" disabled={busy} data-testid="verify-otp-btn" className="w-full flex items-center justify-center gap-2 bg-[#2563EB] text-white py-3 text-sm uppercase tracking-wider hover:bg-[#1D4ED8] disabled:opacity-50 transition-colors duration-200">
-                    {busy ? "Verifying" : "Verify & Sign In"} <ArrowRight size={16} />
-                  </button>
-                  <button type="button" onClick={() => setOtp({ ...otp, sent: false, code: "" })} className="w-full text-xs text-zinc-500 hover:text-zinc-950 transition-colors duration-200">Use a different identifier</button>
-                </form>
-              )}
-              <div className="mt-8 pt-6 border-t border-border text-xs text-zinc-500 font-mono">Demo · admin@marketing.ai</div>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  const { login, register, requestOtp, verifyOtp, requestPasswordReset } = useAuth(); const navigate = useNavigate();
+  const [method, setMethod] = useState("password"); const [mode, setMode] = useState("login"); const [generated, setGenerated] = useState(true); const [form, setForm] = useState({ name: "", email: "", password: "", phone: "" }); const [otp, setOtp] = useState({ identifier: "", code: "", sent: false, channel: "" }); const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
+  const chooseMode = (next) => { setMode(next); setGenerated(next !== "login"); setError(""); };
+  const submitPassword = async (event) => { event.preventDefault(); setError(""); setBusy(true); try { if (mode === "login") { await login(form.email, form.password); navigate("/"); } else if (mode === "register") { const result = await register(form.name, form.email, form.password, form.phone, generated); if (result.temporary_password_emailed) toast.success("A temporary password was sent securely. Change it now."); navigate("/account-security"); } else { await requestPasswordReset(form.email, generated ? "temporary" : "link"); toast.success("If an account exists, password instructions have been sent."); chooseMode("login"); } } catch (err) { setError(formatApiError(err.response?.data?.detail) || err.message); } finally { setBusy(false); } };
+  const sendOtp = async (event) => { event.preventDefault(); setError(""); setBusy(true); try { const data = await requestOtp(otp.identifier); setOtp({ ...otp, sent: true, channel: data.channel }); toast.success(data.channel === "sms" ? "Code sent by SMS." : "Code sent by email."); } catch (err) { setError(formatApiError(err.response?.data?.detail) || err.message); } finally { setBusy(false); } };
+  const confirmOtp = async (event) => { event.preventDefault(); setError(""); setBusy(true); try { await verifyOtp(otp.identifier, otp.code); navigate("/"); } catch (err) { setError(formatApiError(err.response?.data?.detail) || err.message); } finally { setBusy(false); } };
+  const title = mode === "login" ? "Sign in" : mode === "register" ? "Create account" : "Reset password";
+  return <div className="noise-bg min-h-screen bg-background flex"><aside className="hidden lg:flex w-1/2 flex-col justify-between p-12 border-r border-border"><div className="flex items-center gap-2"><div className="w-8 h-8 bg-[#2563EB] flex items-center justify-center"><Lightning weight="fill" className="text-white" size={18} /></div><span className="font-display font-bold tracking-tight">NEXUS</span></div><div><div className="text-xs font-bold uppercase tracking-[0.2em] text-[#2563EB] mb-4">Autonomous Marketing OS</div><h1 className="font-display text-5xl font-light leading-[1.05] tracking-tight max-w-lg">Marketing intelligence, with you in control.</h1><p className="text-zinc-500 mt-6 max-w-md text-sm leading-relaxed">A knowledge-first, policy-governed marketing workspace for each tenant.</p></div><p className="text-xs uppercase tracking-[0.15em] text-zinc-500">Secure access · Human-approved execution</p></aside><main className="flex-1 flex items-center justify-center p-6"><div className="w-full max-w-sm"><div className="lg:hidden flex items-center gap-2 mb-8"><div className="w-8 h-8 bg-[#2563EB] flex items-center justify-center"><Lightning weight="fill" className="text-white" size={18} /></div><span className="font-display font-bold tracking-tight">NEXUS</span></div><div className="flex border border-border mb-8">{[["password", "Password"], ["otp", "OTP Login"]].map(([id, label]) => <button key={id} onClick={() => { setMethod(id); setError(""); }} className={`flex-1 py-2 text-xs uppercase tracking-wider ${method === id ? "bg-[#2563EB] text-white" : "text-zinc-500 hover:text-zinc-950"}`}>{label}</button>)}</div>{method === "password" ? <><h2 className="font-display text-2xl font-medium tracking-tight mb-1">{title}</h2><p className="text-sm text-zinc-500 mb-7">{mode === "login" ? "Access your tenant-scoped marketing workspace." : mode === "register" ? "Choose an email-delivered temporary password or set your own." : "Send a single-use reset link or a temporary password to your email."}</p><form onSubmit={submitPassword} className="space-y-4">{mode === "register" && <><Field label="Full name" value={form.name} onChange={(value) => setForm({ ...form, name: value })} /><Field label="Phone (optional for OTP)" type="tel" value={form.phone} required={false} onChange={(value) => setForm({ ...form, phone: value })} /></>}<Field label="Work email" type="email" value={form.email} onChange={(value) => setForm({ ...form, email: value })} />{mode !== "login" && <button type="button" onClick={() => setGenerated(!generated)} className="w-full flex justify-between text-left border border-zinc-200 p-3 text-xs"><span className="font-medium text-zinc-900">{generated ? "Email a generated temporary password" : "Set my own password now"}</span><span className="text-[#2563EB]">Change</span></button>}{(mode === "login" || (mode === "register" && !generated)) && <Field label="Password" type="password" value={form.password} onChange={(value) => setForm({ ...form, password: value })} />}{error && <Notice>{error}</Notice>}<Submit busy={busy} label={mode === "login" ? "Sign in" : mode === "register" ? "Create account" : "Send instructions"} /></form><div className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-sm">{mode !== "login" && <button onClick={() => chooseMode("login")} className="text-zinc-500 hover:text-zinc-950">Sign in</button>}{mode !== "register" && <button onClick={() => chooseMode("register")} className="text-zinc-500 hover:text-zinc-950">Create account</button>}{mode !== "reset" && <button onClick={() => chooseMode("reset")} className="text-zinc-500 hover:text-zinc-950">Forgot password?</button>}</div></> : <><h2 className="font-display text-2xl font-medium tracking-tight mb-1 flex items-center gap-2"><DeviceMobile size={22} /> OTP Login</h2><p className="text-sm text-zinc-500 mb-8">Enter your email or registered phone to receive a one-time code.</p>{!otp.sent ? <form onSubmit={sendOtp} className="space-y-4"><Field label="Email or phone" value={otp.identifier} onChange={(value) => setOtp({ ...otp, identifier: value })} />{error && <Notice>{error}</Notice>}<Submit busy={busy} label="Send OTP" /></form> : <form onSubmit={confirmOtp} className="space-y-4"><Notice>A 6-digit code was sent {otp.channel === "sms" ? "by SMS" : "to your email"}.</Notice><Field label="6-digit code" value={otp.code} onChange={(value) => setOtp({ ...otp, code: value })} />{error && <Notice>{error}</Notice>}<Submit busy={busy} label="Verify and sign in" /><button type="button" onClick={() => setOtp({ ...otp, sent: false, code: "", channel: "" })} className="w-full text-xs text-zinc-500 hover:text-zinc-950">Use a different identifier</button></form>}<button onClick={() => { setMethod("password"); chooseMode("reset"); }} className="mt-6 text-sm text-zinc-500 hover:text-zinc-950 flex items-center gap-2"><EnvelopeSimple size={15} /> Password recovery</button></>}</div></main></div>;
 }
-
-const Field = ({ label, value, onChange, testid, type, required = true }) => (
-  <div>
-    <label className="block text-xs uppercase tracking-[0.15em] text-zinc-500 mb-2">{label}</label>
-    <input type={type} required={required} value={value} onChange={(e) => onChange(e.target.value)} data-testid={testid}
-      className="w-full bg-transparent border border-zinc-200 px-3 py-2.5 text-sm text-zinc-950 focus:outline-none focus:border-[#2563EB] transition-colors duration-200" />
-  </div>
-);

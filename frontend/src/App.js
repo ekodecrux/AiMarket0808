@@ -6,6 +6,8 @@ import { ClientProvider } from "@/context/ClientContext";
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import { Layout } from "@/components/Layout";
 import Login from "@/pages/Login";
+import ResetPassword from "@/pages/ResetPassword";
+import AccountSecurity from "@/pages/AccountSecurity";
 import Flow from "@/pages/Flow";
 import Approvals from "@/pages/Approvals";
 import Dashboard from "@/pages/Dashboard";
@@ -64,6 +66,8 @@ function App() {
               <Toaster theme="dark" position="top-right" toastOptions={{ style: { background: "#0A0A0A", border: "1px solid #27272A", borderRadius: 0, color: "#fff" } }} />
               <Routes>
                 <Route path="/login" element={<LoginGate />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/account-security" element={<Protected><AccountSecurity /></Protected>} />
                 {routes.map(([path, Comp]) => (
                   <Route key={path} path={path} element={<Protected><Comp /></Protected>} />
                 ))}

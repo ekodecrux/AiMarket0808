@@ -2,9 +2,11 @@
 const path = require("path");
 require("dotenv").config();
 
-// Check if we're in development/preview mode (not production build)
-// Craco sets NODE_ENV=development for start, NODE_ENV=production for build
-const isDevServer = process.env.NODE_ENV !== "production";
+// A surrounding preview shell can export NODE_ENV=development before CRACO sets its
+// build environment. Detect the explicit build command as well so development-only
+// React Refresh tooling is never injected into production output.
+const isProductionBuild = process.argv.includes("build") || process.env.NODE_ENV === "production";
+const isDevServer = !isProductionBuild;
 
 // Environment variable overrides
 const config = {

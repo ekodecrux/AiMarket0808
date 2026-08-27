@@ -1,0 +1,13 @@
+import { useState } from "react";
+import { Alert, ScrollView, StyleSheet, Text, TextInput } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { Button, Card, c, Title } from "@/components/nexus";
+import { ScreenContainer } from "@/components/screen-container";
+import { useAuth } from "@/lib/auth-context";
+
+export default function ResetPassword() {
+  const router = useRouter(); const params = useLocalSearchParams<{ token?: string }>(); const { confirmPasswordReset, submitting } = useAuth(); const [token, setToken] = useState(params.token ?? ""); const [password, setPassword] = useState(""); const [confirm, setConfirm] = useState(""); const [error, setError] = useState("");
+  const reset = async () => { if (!token || !password) { setError("Enter your reset token and a new password."); return; } if (password !== confirm) { setError("New passwords do not match."); return; } try { setError(""); const message = await confirmPasswordReset(token, password); Alert.alert("Password reset", message); router.replace("/login" as never); } catch (reason) { setError(reason instanceof Error ? reason.message : "Unable to reset the password."); } };
+  return <ScreenContainer><ScrollView contentContainerStyle={s.page}><Title eyebrow="Secure recovery" title="Set a new password" detail="Use the time-limited token in your reset email. A reset token works only once." /><Card><Text style={s.label}>RESET TOKEN</Text><TextInput value={token} onChangeText={setToken} style={s.input} autoCapitalize="none" placeholder="Paste token from email" placeholderTextColor={c.muted} /><Text style={s.label}>NEW PASSWORD</Text><TextInput value={password} onChangeText={setPassword} style={s.input} secureTextEntry placeholder="12+ characters, letters and numbers" placeholderTextColor={c.muted} /><Text style={s.label}>CONFIRM PASSWORD</Text><TextInput value={confirm} onChangeText={setConfirm} style={s.input} secureTextEntry placeholder="Repeat new password" placeholderTextColor={c.muted} />{error ? <Text style={s.error}>{error}</Text> : null}<Button label="Reset password" icon="lock-reset" onPress={() => void reset()} loading={submitting} /></Card><Button secondary label="Back to sign in" icon="arrow-back" onPress={() => router.replace("/login" as never)} /></ScrollView></ScreenContainer>;
+}
+const s = StyleSheet.create({ page: { padding: 18, gap: 14 }, label: { color: c.muted, fontWeight: "900", fontSize: 10, letterSpacing: 0.8, marginTop: 9, marginBottom: 5 }, input: { minHeight: 46, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: c.border, color: c.ink, fontSize: 14 }, error: { color: c.red, fontSize: 12, lineHeight: 18, marginTop: 8, marginBottom: 2 } });

@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useClient } from "@/context/ClientContext";
 import {
   ChartLineUp, Strategy, PenNib, ShareNetwork, Megaphone,
-  UsersThree, ChatCircleText, ChartBar, Robot, SignOut, List, X, Lightning, Crosshair,
+  UsersThree, ChatCircleText, ChartBar, Robot, SignOut, List, X, Lightning, Crosshair, Key,
   MagnifyingGlass,
   Buildings, PlugsConnected, CaretDown, ChartPieSlice, Path, SealCheck,
   Target, Users, Lightbulb,
@@ -77,7 +77,7 @@ export const Layout = ({ children }) => {
 
         <div className="border-t border-border p-4 shrink-0 bg-zinc-50/70">
           <div className="flex items-center gap-3 mb-3"><div className="w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center text-xs font-mono uppercase">{(user?.name || user?.email || "U").slice(0, 2)}</div><div className="min-w-0"><div className="text-sm truncate text-zinc-900">{user?.name || "User"}</div><div className="text-[11px] text-zinc-500 truncate">{user?.email}</div></div></div>
-          <button onClick={handleLogout} data-testid="logout-btn" className="w-full flex items-center justify-center gap-2 rounded-md px-3 py-2 text-xs uppercase tracking-wider border border-zinc-200 text-zinc-500 hover:border-zinc-400 hover:text-zinc-950 transition-colors duration-200"><SignOut size={14} /> Sign Out</button>
+          <div className="grid grid-cols-2 gap-2"><NavLink to="/account-security" className="flex items-center justify-center gap-2 rounded-md px-3 py-2 text-xs uppercase tracking-wider border border-zinc-200 text-zinc-500 hover:border-zinc-400 hover:text-zinc-950 transition-colors duration-200"><Key size={14} /> Security</NavLink><button onClick={handleLogout} data-testid="logout-btn" className="flex items-center justify-center gap-2 rounded-md px-3 py-2 text-xs uppercase tracking-wider border border-zinc-200 text-zinc-500 hover:border-zinc-400 hover:text-zinc-950 transition-colors duration-200"><SignOut size={14} /> Sign Out</button></div>
         </div>
       </aside>
 
