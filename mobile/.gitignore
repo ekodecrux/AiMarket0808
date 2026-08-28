@@ -38,9 +38,16 @@ yarn-error.*
 
 app-example
 
-# generated native folders
-/ios
-/android
+# Direct-native platform source is committed for GitHub Actions builds.
+# Exclude only developer-machine outputs and local SDK paths.
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/.cxx/
+/android/local.properties
+/ios/Pods/
+/ios/build/
+/ios/DerivedData/
 
 # IDE
 .vscode/

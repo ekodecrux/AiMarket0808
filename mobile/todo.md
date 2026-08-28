@@ -44,18 +44,36 @@
 - [ ] Run an authenticated Android QA walkthrough for responsive connection and approval flows
 - [ ] Complete physical Android QA in Expo Go or an Android development build; this sandbox has no ADB, emulator, or attached device
 - [x] Validate and checkpoint the secure social connection and budget-control enhancement
-- [ ] Replace template authentication with multi-tenant JWT email login and tenant-scoped authorization
-- [ ] Add temporary password generation, SMTP reset links, and user-controlled password change flows
-- [ ] Remove remaining Manus-auth dependencies from the client-facing authentication path
-- [ ] Validate tenant isolation, password lifecycle security, SMTP delivery, and checkpoint the auth replacement
-- [ ] Add tenant-scoped Razorpay, Stripe, and Paytm checkout and verified webhook foundations
-- [ ] Add mobile billing gateway readiness and configuration-pending states
-- [ ] Validate payment webhook signature rejection, idempotency, tenant isolation, and gateway configuration readiness
-- [ ] Push the validated authentication and payment release to GitHub and deploy it to production
-- [ ] Add tenant-scoped Razorpay, Stripe, and Paytm checkout and verified webhook foundations
-- [ ] Add mobile billing gateway readiness and configuration-pending states
-- [ ] Validate payment webhook signature rejection, idempotency, tenant isolation, and gateway configuration readiness
-- [ ] Push the validated authentication and payment release to GitHub and deploy it to production
-- [ ] Audit remaining production website capabilities against the native mobile client and close material parity gaps
+- [x] Replace template authentication with multi-tenant JWT email login and tenant-scoped authorization
+- [x] Add temporary password generation, SMTP reset links, and user-controlled password change flows
+- [x] Remove remaining Manus-auth dependencies from the client-facing authentication path
+- [x] Validate tenant isolation, password lifecycle security, SMTP delivery, and checkpoint the auth replacement
+- [x] Add tenant-scoped Razorpay, Stripe, and Paytm checkout and verified webhook foundations
+- [x] Add mobile billing gateway readiness and configuration-pending states
+- [x] Validate payment webhook signature rejection, idempotency, tenant isolation, and gateway configuration readiness
+- [x] Push the validated authentication and payment release to GitHub and deploy it to production
+- [x] Add tenant-scoped Razorpay, Stripe, and Paytm checkout and verified webhook foundations
+- [x] Add mobile billing gateway readiness and configuration-pending states
+- [x] Validate payment webhook signature rejection, idempotency, tenant isolation, and gateway configuration readiness
+- [x] Push the validated authentication and payment release to GitHub and deploy it to production
+- [x] Audit remaining production website capabilities against the native mobile client and close material parity gaps
 - [ ] Prepare Android APK and AAB release builds and an iOS archive through the supported signed-build workflow
-- [ ] Package and attach the final mobile source code and all available signed release artifacts
+- [x] Package and attach the final mobile source code and all available signed release artifacts
+- [x] Verify live production website routes and mobile-native feature coverage against the shared product capabilities
+- [x] Resolve any material mobile parity or native feature-access gap found during verification
+- [x] Validate the parity update and provide device-specific usage guidance
+- [ ] Confirm the dedicated mobile source folder and repository name in GitHub
+- [ ] Add GitHub Actions workflows for Expo Android APK/AAB and iOS build automation
+- [ ] Document required protected signing and Expo secrets without committing credentials
+- [ ] Validate workflow configuration and dispatch any builds permitted by configured credentials
+- [ ] Deliver generated artifact links and same-day Android/iOS submission guidance
+- [ ] Confirm feature and terminology equivalence with the website while retaining a touch-first native mobile presentation
+- [ ] Preserve native-only device capabilities as enhancements rather than creating a separate mobile product
+- [ ] Replace Expo cloud-build workflow with direct Android Gradle and macOS Xcode GitHub Actions pipelines
+- [ ] Document protected Android keystore and Apple signing-profile secrets required for store-uploadable artifacts
+- [ ] Dispatch debug or signed artifact builds only when the corresponding platform credentials are available
+- [ ] Produce an installable unsigned Android debug APK and retain its build instructions in the dedicated GitHub mobile folder
+- [x] Make protected SMTP and production-access tests conditional in GitHub Actions while retaining local live validation
+- [ ] Audit and add secure Google identity sign-in configuration readiness for web and native clients
+- [ ] Audit and add tenant-scoped mobile SMS OTP login readiness with durable secure sessions
+- [ ] Validate Google and OTP failure paths without contacting identity or SMS providers
