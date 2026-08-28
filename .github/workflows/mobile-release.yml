@@ -1,0 +1,151 @@
+name: Native Mobile Release Builds
+
+on:
+  workflow_dispatch:
+    inputs:
+      artifact:
+        description: "Artifact to create"
+        required: true
+        default: "all"
+        type: choice
+        options: [apk, aab, ios, all]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aimarket-mobile-release-${{ inputs.artifact }}
+  cancel-in-progress: false
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: mobile/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check && pnpm lint && pnpm test
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Create installable Android APK
+        if: inputs.artifact == 'apk' || inputs.artifact == 'all'
+        run: |
+          set -euo pipefail
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+      - name: Configure protected Android release signing
+        if: inputs.artifact == 'aab' || inputs.artifact == 'all'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then echo "::error::Missing protected repository secret: $name"; exit 1; fi
+          done
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/aimarket-upload.keystore
+          chmod 600 android/app/aimarket-upload.keystore
+          {
+            echo "AIMARKET_UPLOAD_STORE_FILE=aimarket-upload.keystore"
+            echo "AIMARKET_UPLOAD_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
+            echo "AIMARKET_UPLOAD_KEY_ALIAS=$ANDROID_KEY_ALIAS"
+            echo "AIMARKET_UPLOAD_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
+          } >> android/gradle.properties
+      - name: Create Google Play Android App Bundle
+        if: inputs.artifact == 'aab' || inputs.artifact == 'all'
+        run: |
+          set -euo pipefail
+          cd android
+          chmod +x gradlew
+          ./gradlew bundleRelease
+      - name: Upload Android APK
+        if: (inputs.artifact == 'apk' || inputs.artifact == 'all') && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aimarket-android-apk-${{ github.run_number }}
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload Android App Bundle
+        if: (inputs.artifact == 'aab' || inputs.artifact == 'all') && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aimarket-android-aab-${{ github.run_number }}
+          path: mobile/android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14
+  ios:
+    if: inputs.artifact == 'ios' || inputs.artifact == 'all'
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: mobile/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check && pnpm lint && pnpm test
+      - name: Install Apple signing materials in an ephemeral keychain
+        env:
+          IOS_DISTRIBUTION_CERTIFICATE_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_BASE64 }}
+          IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          IOS_PROVISIONING_PROFILE_NAME: ${{ secrets.IOS_PROVISIONING_PROFILE_NAME }}
+        run: |
+          set -euo pipefail
+          for name in IOS_DISTRIBUTION_CERTIFICATE_BASE64 IOS_DISTRIBUTION_CERTIFICATE_PASSWORD IOS_PROVISIONING_PROFILE_BASE64 APPLE_TEAM_ID IOS_PROVISIONING_PROFILE_NAME; do
+            if [ -z "${!name}" ]; then echo "::error::Missing protected repository secret: $name"; exit 1; fi
+          done
+          KEYCHAIN_PATH="$RUNNER_TEMP/aimarket-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          printf '%s' "$IOS_DISTRIBUTION_CERTIFICATE_BASE64" | base64 --decode > "$RUNNER_TEMP/distribution.p12"
+          security import "$RUNNER_TEMP/distribution.p12" -P "$IOS_DISTRIBUTION_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          printf '%s' "$IOS_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$HOME/Library/MobileDevice/Provisioning Profiles/aimarket.mobileprovision"
+      - name: Archive and export signed iOS IPA
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          IOS_PROVISIONING_PROFILE_NAME: ${{ secrets.IOS_PROVISIONING_PROFILE_NAME }}
+        run: |
+          set -euo pipefail
+          cd ios
+          pod install --repo-update
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>method</key><string>app-store</string><key>teamID</key><string>$APPLE_TEAM_ID</string><key>provisioningProfiles</key><dict><key>com.expertaitutor.aimarket</key><string>$IOS_PROVISIONING_PROFILE_NAME</string></dict></dict></plist>
+          EOF
+          xcodebuild -workspace AiMarketNEXUS.xcworkspace -scheme AiMarketNEXUS -configuration Release -sdk iphoneos -archivePath "$RUNNER_TEMP/AiMarketNEXUS.xcarchive" CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM="$APPLE_TEAM_ID" PROVISIONING_PROFILE_SPECIFIER="$IOS_PROVISIONING_PROFILE_NAME" archive
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/AiMarketNEXUS.xcarchive" -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/ipa"
+      - name: Upload iOS IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: aimarket-ios-ipa-${{ github.run_number }}
+          path: ${{ runner.temp }}/ipa/*.ipa
+          if-no-files-found: error
+          retention-days: 14

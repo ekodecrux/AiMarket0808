@@ -1,0 +1,37 @@
+name: Mobile CI
+
+on:
+  pull_request:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: mobile/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm lint
+      - run: pnpm test
+      - run: npx expo config --json > /tmp/expo-config.json
