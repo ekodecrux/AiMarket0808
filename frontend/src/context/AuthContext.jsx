@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import api from "@/lib/api";
+import api, { API } from "@/lib/api";
 
 const AuthContext = createContext(null);
 
@@ -59,6 +59,32 @@ export function AuthProvider({ children }) {
     return data;
   };
 
+  const getProviderReadiness = async () => {
+    const { data } = await api.get("/auth/providers");
+    return data;
+  };
+
+  const startGoogleSignIn = (returnTo) => {
+    window.location.assign(`${API}/auth/google/authorize?return_to=${encodeURIComponent(returnTo)}`);
+  };
+
+  const exchangeGoogleCode = async (code) => {
+    const { data } = await api.post("/auth/google/exchange", { code });
+    setUser(data.user);
+    return data;
+  };
+
+  const requestPhoneOtp = async (phone, intent, name, consent) => {
+    const { data } = await api.post("/auth/otp/phone/request", { phone, intent, name, consent });
+    return data;
+  };
+
+  const verifyPhoneOtp = async (phone, code, intent) => {
+    const { data } = await api.post("/auth/otp/phone/verify", { phone, code, intent });
+    setUser(data.user);
+    return data;
+  };
+
   const logout = async () => {
     try {
       await api.post("/auth/logout");
@@ -67,7 +93,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, requestOtp, verifyOtp, requestPasswordReset, confirmPasswordReset, changePassword }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, requestOtp, verifyOtp, requestPasswordReset, confirmPasswordReset, changePassword, getProviderReadiness, startGoogleSignIn, exchangeGoogleCode, requestPhoneOtp, verifyPhoneOtp }}>
       {children}
     </AuthContext.Provider>
   );

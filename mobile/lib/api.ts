@@ -5,7 +5,8 @@ import { cachedResponse, cacheResponse } from "@/lib/offline-cache";
 import { cachedKnowledge, saveKnowledge } from "@/lib/knowledge-cache";
 
 const tokenKey = "aimarket.nexus.token";
-const client = axios.create({ baseURL: "https://aimarket.expertaitutor.com/api", timeout: 30000, withCredentials: true });
+export const API_BASE_URL = "https://aimarket.expertaitutor.com/api";
+const client = axios.create({ baseURL: API_BASE_URL, timeout: 30000, withCredentials: true });
 
 export type User = { _id?: string; id?: string; name?: string; email: string; role?: string; tenant_id?: string; client_id?: string; must_change_password?: boolean };
 export type Campaign = { _id: string; name: string; channel: string; objective: string; budget: number; status: string; impressions?: number; clicks?: number; conversions?: number; revenue?: number; roas?: number; ctr?: number };
@@ -15,6 +16,7 @@ export type PaymentGateway = { provider: "razorpay" | "stripe" | "paytm"; label:
 export type PaymentRecord = { id: string; provider: string; plan_name?: string; plan_code?: string; amount_minor?: number; currency?: string; status: string; created_at?: string };
 export type PaymentPlan = { code: string; name: string; amount_minor: number; currency: string };
 export type PaymentCheckout = { payment_id: string; provider: string; status: string; checkout_url?: string | null };
+export type AuthProviderReadiness = { google: { available: boolean; flow: string; required_configuration: string[]; web_client_id: string }; phone_otp: { available: boolean; flow: string; requires_sms_consent: boolean; required_configuration: string[] } };
 
 export const tokenStore = {
   async get() { return Platform.OS === "web" ? (typeof sessionStorage === "undefined" ? null : sessionStorage.getItem(tokenKey)) : SecureStore.getItemAsync(tokenKey); },
@@ -44,6 +46,10 @@ export const api = {
     requestPasswordReset: (email: string, delivery: "link" | "temporary" = "link") => post<{ message: string }>("/auth/password/reset/request", { email, delivery }),
     confirmPasswordReset: (token: string, password: string) => post<{ message: string }>("/auth/password/reset/confirm", { token, password }),
     changePassword: (current_password: string, new_password: string) => post<{ message: string }>("/auth/password/change", { current_password, new_password }),
+    providers: () => get<AuthProviderReadiness>("/auth/providers"),
+    exchangeGoogleCode: (code: string) => post<{ user: User; token: string }>("/auth/google/exchange", { code }),
+    requestPhoneOtp: (phone: string, intent: "login" | "signup", name: string, consent: boolean) => post<{ message: string; sent_to: string }>("/auth/otp/phone/request", { phone, intent, name, consent }),
+    verifyPhoneOtp: (phone: string, code: string, intent: "login" | "signup") => post<{ user: User; token: string }>("/auth/otp/phone/verify", { phone, code, intent }),
     me: () => get<User>("/auth/me"), logout: () => post("/auth/logout"),
   },
   overview: () => get<Record<string, unknown>>("/analytics/overview"),

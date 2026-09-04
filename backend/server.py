@@ -61,6 +61,8 @@ async def lifespan(app: FastAPI):
     await db.password_reset_tokens.create_index("token_hash", unique=True)
     await db.auth_nonces.create_index("expires_at", expireAfterSeconds=0)
     await db.auth_nonces.create_index("nonce_hash", unique=True)
+    await db.auth_exchange_codes.create_index("expires_at", expireAfterSeconds=0)
+    await db.auth_exchange_codes.create_index("code_hash", unique=True)
     await db.phone_otp_challenges.create_index("expires_at", expireAfterSeconds=0)
     await db.phone_otp_challenges.create_index([("phone", 1), ("intent", 1)], unique=True)
     await db.auth_rate_limits.create_index("expires_at", expireAfterSeconds=0)

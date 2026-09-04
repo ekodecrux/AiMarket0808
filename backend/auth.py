@@ -9,13 +9,15 @@ from datetime import datetime, timezone, timedelta
 
 import bcrypt
 import jwt
+import requests
 from bson import ObjectId
 from fastapi import APIRouter, Request, Response, HTTPException, Depends
+from fastapi.responses import RedirectResponse
 from pymongo import ReturnDocument
 
 from models import (
     RegisterInput, LoginInput, OtpRequestInput, OtpVerifyInput,
-    GoogleIdentityInput, PhoneOtpRequestInput, PhoneOtpVerifyInput,
+    GoogleExchangeInput, GoogleIdentityInput, PhoneOtpRequestInput, PhoneOtpVerifyInput,
     PasswordChangeInput, PasswordResetConfirmInput, PasswordResetRequestInput, now_utc,
 )
 
@@ -27,6 +29,7 @@ RESET_TOKEN_MINUTES = 30
 GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs"
 GOOGLE_ISSUERS = ("https://accounts.google.com", "accounts.google.com")
 GOOGLE_NONCE_MINUTES = 5
+GOOGLE_EXCHANGE_MINUTES = 2
 PHONE_OTP_MINUTES = 10
 
 
@@ -38,6 +41,31 @@ def google_auth_audiences() -> list[str]:
 
 def google_auth_ready() -> bool:
     return bool(google_auth_audiences())
+
+
+def google_web_oauth_config() -> dict:
+    return {
+        "client_id": os.environ.get("GOOGLE_AUTH_WEB_CLIENT_ID", "").strip(),
+        "client_secret": os.environ.get("GOOGLE_AUTH_WEB_CLIENT_SECRET", ""),
+    }
+
+
+def google_web_oauth_ready() -> bool:
+    config = google_web_oauth_config()
+    return bool(config["client_id"] in google_auth_audiences() and config["client_secret"])
+
+
+def _google_callback_url() -> str:
+    base = os.environ.get("AUTH_PUBLIC_BASE_URL", "https://aimarket.expertaitutor.com").rstrip("/")
+    return f"{base}/api/auth/google/callback"
+
+
+def _allowed_google_return_to(return_to: str) -> str:
+    web_login = f"{os.environ.get('AUTH_PUBLIC_BASE_URL', 'https://aimarket.expertaitutor.com').rstrip('/')}/login"
+    allowed = {web_login, "aimarket://auth"}
+    if return_to not in allowed:
+        raise HTTPException(422, "Unsupported Google sign-in return address")
+    return return_to
 
 
 def normalize_e164(phone: str) -> str:
@@ -86,6 +114,40 @@ async def verify_google_identity_token(id_token: str, nonce: str) -> dict:
         raise HTTPException(401, "Google identity verification failed")
     claims["email"] = email
     return claims
+
+
+async def _resolve_google_user(db, claims: dict) -> dict:
+    subject, email = str(claims["sub"]), claims["email"]
+    user = await db.users.find_one({"google_subject": subject})
+    if user:
+        await db.users.update_one({"_id": user["_id"]}, {"$set": {"last_signed_in_at": now_utc()}})
+        return user
+    user = await db.users.find_one({"email": email})
+    if user and user.get("google_subject") and user["google_subject"] != subject:
+        raise HTTPException(409, "This email is already linked to a different Google identity")
+    if user:
+        await db.users.update_one({"_id": user["_id"]}, {"$set": {"google_subject": subject,
+            "google_linked_at": now_utc(), "last_signed_in_at": now_utc()}})
+        user["google_subject"] = subject
+        return user
+    user_id = ObjectId()
+    user = {"_id": user_id, "email": email, "name": str(claims.get("name", "")).strip()[:120],
+        "google_subject": subject, "role": "user", "tenant_id": str(user_id), "token_version": 0,
+        "password_change_required": False, "created_at": now_utc(), "last_signed_in_at": now_utc()}
+    await db.users.insert_one(user)
+    await db.tenants.update_one({"_id": str(user_id)}, {"$setOnInsert": {"_id": str(user_id),
+        "owner_user_id": str(user_id), "name": user["name"] or email, "created_at": now_utc()}}, upsert=True)
+    return user
+
+
+async def _issue_google_exchange_code(db, user: dict) -> str:
+    raw = secrets.token_urlsafe(32)
+    await db.auth_exchange_codes.insert_one({
+        "code_hash": hashlib.sha256(raw.encode("utf-8")).hexdigest(), "kind": "google_sign_in",
+        "user_id": str(user["_id"]), "created_at": now_utc(),
+        "expires_at": now_utc() + timedelta(minutes=GOOGLE_EXCHANGE_MINUTES), "used_at": None,
+    })
+    return raw
 
 
 async def _system_conn_creds(db, provider: str) -> dict:
@@ -371,13 +433,14 @@ def create_auth_router(db):
     async def provider_readiness():
         """Expose only client-safe readiness metadata; all provider secrets remain server-side."""
         sms_ready = bool(await _system_twilio_verify_creds(db))
-        google_ready = google_auth_ready()
+        google_ready = google_web_oauth_ready()
+        google_requirements = [] if google_ready else ["GOOGLE_AUTH_CLIENT_IDS", "GOOGLE_AUTH_WEB_CLIENT_ID", "GOOGLE_AUTH_WEB_CLIENT_SECRET"]
         return {
             "google": {
                 "available": google_ready,
-                "flow": "id_token_exchange",
-                "required_configuration": [] if google_ready else ["GOOGLE_AUTH_CLIENT_IDS"],
-                "web_client_id": os.environ.get("GOOGLE_AUTH_WEB_CLIENT_ID", "") if google_ready else "",
+                "flow": "authorization_code_exchange",
+                "required_configuration": google_requirements,
+                "web_client_id": google_web_oauth_config()["client_id"] if google_ready else "",
             },
             "phone_otp": {
                 "available": sms_ready,
@@ -412,24 +475,81 @@ def create_auth_router(db):
         )
         if not nonce_record:
             raise HTTPException(401, "Google sign-in session is invalid or expired")
-        subject, email = str(claims["sub"]), claims["email"]
-        user = await db.users.find_one({"google_subject": subject})
+        user = await _resolve_google_user(db, claims)
+        token = create_access_token(user)
+        _set_cookie(response, token)
+        return {"user": _public_user(user), "token": token}
+
+    @router.get("/google/authorize")
+    async def google_authorize(return_to: str, request: Request):
+        if not google_web_oauth_ready():
+            raise HTTPException(503, "Google sign-in is not configured")
+        return_to = _allowed_google_return_to(return_to)
+        remote = request.client.host if request.client else "unknown"
+        if not await _consume_rate_limit(db, "google_authorize", remote, 10, 5):
+            raise HTTPException(429, "Too many sign-in attempts. Please try again shortly.")
+        state, nonce = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
+        await db.auth_nonces.insert_one({
+            "nonce_hash": hashlib.sha256(state.encode("utf-8")).hexdigest(), "kind": "google_oauth_state",
+            "nonce": nonce, "return_to": return_to, "created_at": now_utc(),
+            "expires_at": now_utc() + timedelta(minutes=GOOGLE_NONCE_MINUTES), "used_at": None,
+        })
+        config = google_web_oauth_config()
+        query = urllib.parse.urlencode({
+            "client_id": config["client_id"], "redirect_uri": _google_callback_url(), "response_type": "code",
+            "scope": "openid email profile", "state": state, "nonce": nonce, "prompt": "select_account",
+        })
+        return RedirectResponse(f"https://accounts.google.com/o/oauth2/v2/auth?{query}", status_code=302)
+
+    @router.get("/google/callback")
+    async def google_callback(code: str, state: str):
+        record = await db.auth_nonces.find_one_and_update(
+            {"kind": "google_oauth_state", "nonce_hash": hashlib.sha256(state.encode("utf-8")).hexdigest(),
+             "used_at": None, "expires_at": {"$gt": now_utc()}},
+            {"$set": {"used_at": now_utc()}}, return_document=ReturnDocument.AFTER,
+        )
+        if not record:
+            raise HTTPException(401, "Google sign-in session is invalid or expired")
+        config = google_web_oauth_config()
+        if not google_web_oauth_ready():
+            raise HTTPException(503, "Google sign-in is not configured")
+
+        def exchange_provider_code() -> dict:
+            response = requests.post("https://oauth2.googleapis.com/token", data={
+                "code": code, "client_id": config["client_id"], "client_secret": config["client_secret"],
+                "redirect_uri": _google_callback_url(), "grant_type": "authorization_code",
+            }, timeout=15)
+            if response.status_code != 200:
+                raise HTTPException(401, "Google identity verification failed")
+            return response.json()
+
+        try:
+            payload = await asyncio.to_thread(exchange_provider_code)
+            id_token = str(payload.get("id_token", ""))
+            if not id_token:
+                raise HTTPException(401, "Google identity verification failed")
+            claims = await verify_google_identity_token(id_token, str(record.get("nonce", "")))
+        except HTTPException:
+            raise
+        except Exception:
+            raise HTTPException(502, "Google identity verification is temporarily unavailable")
+        user = await _resolve_google_user(db, claims)
+        exchange_code = await _issue_google_exchange_code(db, user)
+        delimiter = "&" if "?" in record["return_to"] else "?"
+        return RedirectResponse(f"{record['return_to']}{delimiter}{urllib.parse.urlencode({'google_code': exchange_code})}", status_code=302)
+
+    @router.post("/google/exchange")
+    async def google_exchange(data: GoogleExchangeInput, response: Response):
+        record = await db.auth_exchange_codes.find_one_and_update(
+            {"kind": "google_sign_in", "code_hash": hashlib.sha256(data.code.encode("utf-8")).hexdigest(),
+             "used_at": None, "expires_at": {"$gt": now_utc()}},
+            {"$set": {"used_at": now_utc()}}, return_document=ReturnDocument.AFTER,
+        )
+        if not record:
+            raise HTTPException(401, "Google sign-in code is invalid or expired")
+        user = await db.users.find_one({"_id": ObjectId(record["user_id"])})
         if not user:
-            user = await db.users.find_one({"email": email})
-            if user and user.get("google_subject") and user["google_subject"] != subject:
-                raise HTTPException(409, "This email is already linked to a different Google identity")
-            if user:
-                await db.users.update_one({"_id": user["_id"]}, {"$set": {"google_subject": subject,
-                    "google_linked_at": now_utc(), "last_signed_in_at": now_utc()}})
-                user["google_subject"] = subject
-            else:
-                user_id = ObjectId()
-                user = {"_id": user_id, "email": email, "name": str(claims.get("name", "")).strip()[:120],
-                    "google_subject": subject, "role": "user", "tenant_id": str(user_id), "token_version": 0,
-                    "password_change_required": False, "created_at": now_utc(), "last_signed_in_at": now_utc()}
-                await db.users.insert_one(user)
-                await db.tenants.update_one({"_id": str(user_id)}, {"$setOnInsert": {"_id": str(user_id),
-                    "owner_user_id": str(user_id), "name": user["name"] or email, "created_at": now_utc()}}, upsert=True)
+            raise HTTPException(401, "Google sign-in code is invalid or expired")
         token = create_access_token(user)
         _set_cookie(response, token)
         return {"user": _public_user(user), "token": token}

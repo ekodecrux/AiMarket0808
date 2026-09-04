@@ -80,6 +80,10 @@ class GoogleIdentityInput(BaseModel):
     nonce: str = Field(min_length=16, max_length=128)
 
 
+class GoogleExchangeInput(BaseModel):
+    code: str = Field(min_length=32, max_length=256)
+
+
 class PhoneOtpRequestInput(BaseModel):
     phone: str = Field(min_length=8, max_length=32)
     consent: bool
