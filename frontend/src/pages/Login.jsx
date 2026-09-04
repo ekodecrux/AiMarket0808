@@ -29,6 +29,8 @@ export default function Login() {
 
   useEffect(() => {
     getProviderReadiness().then(setProviders).catch(() => setProviders({ google: { available: false }, phone_otp: { available: false } }));
+    // Provider availability is intentionally loaded once for the unauthenticated entry screen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -39,6 +41,8 @@ export default function Login() {
       window.history.replaceState({}, "", "/login");
       navigate("/", { replace: true });
     }).catch((err) => setError(formatApiError(err.response?.data?.detail) || err.message)).finally(() => setBusy(false));
+    // A callback code must be exchanged only once on the initial redirect render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const chooseMode = (next) => { setMode(next); setGenerated(next !== "login"); setError(""); };
