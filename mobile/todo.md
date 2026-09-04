@@ -72,7 +72,7 @@
 - [ ] Replace Expo cloud-build workflow with direct Android Gradle and macOS Xcode GitHub Actions pipelines
 - [ ] Document protected Android keystore and Apple signing-profile secrets required for store-uploadable artifacts
 - [ ] Dispatch debug or signed artifact builds only when the corresponding platform credentials are available
-- [ ] Produce an installable unsigned Android debug APK and retain its build instructions in the dedicated GitHub mobile folder
+- [ ] Produce an installable debug-signed Android QA APK and retain its build instructions in the dedicated GitHub mobile folder
 - [x] Make protected SMTP and production-access tests conditional in GitHub Actions while retaining local live validation
 - [ ] Audit and add secure Google identity sign-in configuration readiness for web and native clients
 - [ ] Audit and add tenant-scoped mobile SMS OTP login readiness with durable secure sessions

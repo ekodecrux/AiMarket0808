@@ -6,7 +6,7 @@ on:
       artifact:
         description: "Artifact to create"
         required: true
-        default: "all"
+        default: "apk"
         type: choice
         options: [apk, aab, ios, all]
 
@@ -39,6 +39,15 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Generate ephemeral Android debug signing key
+        if: inputs.artifact == 'apk' || inputs.artifact == 'all'
+        run: |
+          set -euo pipefail
+          keytool -genkeypair -noprompt -storetype JKS \
+            -keystore android/app/debug.keystore \
+            -storepass android -keypass android -alias androiddebugkey \
+            -dname "CN=Android Debug,O=Android,C=US" \
+            -keyalg RSA -keysize 2048 -validity 10000
       - name: Create installable Android APK
         if: inputs.artifact == 'apk' || inputs.artifact == 'all'
         run: |

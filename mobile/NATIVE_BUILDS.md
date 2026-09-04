@@ -4,7 +4,7 @@ The `mobile/` folder contains the full AiMarket native source, including generat
 
 | Artifact | Workflow input | Native toolchain | Signing requirement |
 |---|---|---|---|
-| Installable Android APK | `apk` | Gradle `assembleDebug` | None; QA-only debug signature |
+| Installable Android APK | `apk` | Gradle `assembleDebug` | No user secret; workflow generates an ephemeral QA-only debug signature |
 | Play Store Android App Bundle | `aab` | Gradle `bundleRelease` | Upload keystore and alias credentials |
 | App Store/TestFlight iOS IPA | `ios` | Xcode archive/export | Apple distribution certificate and App Store provisioning profile |
 
