@@ -55,7 +55,7 @@ db = client[os.environ["DB_NAME"]]
 async def lifespan(app: FastAPI):
     await db.users.create_index("email", unique=True)
     await db.users.create_index("google_subject", unique=True, sparse=True)
-    await db.users.create_index("phone", unique=True, sparse=True)
+    await db.users.create_index("phone", unique=True, partialFilterExpression={"phone": {"$gt": ""}})
     await db.users.create_index("tenant_id")
     await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
     await db.password_reset_tokens.create_index("token_hash", unique=True)

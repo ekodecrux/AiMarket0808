@@ -96,7 +96,7 @@ class AuthAndPaymentSecurityTests(unittest.TestCase):
         self.assertIn('"SMS consent is required', source)
         server_source = (pathlib.Path(__file__).resolve().parents[1] / "server.py").read_text()
         self.assertIn('create_index("google_subject", unique=True, sparse=True)', server_source)
-        self.assertIn('create_index("phone", unique=True, sparse=True)', server_source)
+        self.assertIn('create_index("phone", unique=True, partialFilterExpression={"phone": {"$gt": ""}})', server_source)
         self.assertIn("phone_otp_challenges.create_index", server_source)
 
     def test_provider_readiness_is_safe_when_google_and_twilio_are_unconfigured(self):
