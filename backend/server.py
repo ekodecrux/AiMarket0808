@@ -54,9 +54,15 @@ db = client[os.environ["DB_NAME"]]
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await db.users.create_index("email", unique=True)
+    await db.users.create_index("google_subject", unique=True, sparse=True)
+    await db.users.create_index("phone", unique=True, sparse=True)
     await db.users.create_index("tenant_id")
     await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
     await db.password_reset_tokens.create_index("token_hash", unique=True)
+    await db.auth_nonces.create_index("expires_at", expireAfterSeconds=0)
+    await db.auth_nonces.create_index("nonce_hash", unique=True)
+    await db.phone_otp_challenges.create_index("expires_at", expireAfterSeconds=0)
+    await db.phone_otp_challenges.create_index([("phone", 1), ("intent", 1)], unique=True)
     await db.auth_rate_limits.create_index("expires_at", expireAfterSeconds=0)
     await db.auth_rate_limits.create_index([("kind", 1), ("key_hash", 1)])
     await db.payments.create_index([("tenant_id", 1), ("created_at", -1)])

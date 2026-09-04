@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import os
 import re
@@ -14,6 +15,7 @@ from pymongo import ReturnDocument
 
 from models import (
     RegisterInput, LoginInput, OtpRequestInput, OtpVerifyInput,
+    GoogleIdentityInput, PhoneOtpRequestInput, PhoneOtpVerifyInput,
     PasswordChangeInput, PasswordResetConfirmInput, PasswordResetRequestInput, now_utc,
 )
 
@@ -22,6 +24,68 @@ JWT_ISSUER = "aimarket-nexus"
 ACCESS_TOKEN_DAYS = 7
 PASSWORD_MIN_LENGTH = 12
 RESET_TOKEN_MINUTES = 30
+GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs"
+GOOGLE_ISSUERS = ("https://accounts.google.com", "accounts.google.com")
+GOOGLE_NONCE_MINUTES = 5
+PHONE_OTP_MINUTES = 10
+
+
+def google_auth_audiences() -> list[str]:
+    """Return registered Google OAuth client IDs without exposing a secret."""
+    raw = os.environ.get("GOOGLE_AUTH_CLIENT_IDS", "")
+    return [value.strip() for value in raw.split(",") if value.strip()]
+
+
+def google_auth_ready() -> bool:
+    return bool(google_auth_audiences())
+
+
+def normalize_e164(phone: str) -> str:
+    value = phone.strip().replace(" ", "").replace("-", "")
+    if not re.fullmatch(r"\+[1-9]\d{7,14}", value):
+        raise HTTPException(422, "Enter a phone number in E.164 format, for example +14155552671")
+    return value
+
+
+def mask_phone(phone: str) -> str:
+    return f"{phone[:3]}{'•' * max(len(phone) - 5, 3)}{phone[-2:]}"
+
+
+async def verify_google_identity_token(id_token: str, nonce: str) -> dict:
+    """Verify a Google ID token signature and standard OpenID Connect claims server-side."""
+    audiences = google_auth_audiences()
+    if not audiences:
+        raise HTTPException(503, "Google sign-in is not configured")
+
+    def verify() -> dict:
+        signing_key = jwt.PyJWKClient(GOOGLE_JWKS_URL, cache_keys=True).get_signing_key_from_jwt(id_token)
+        return jwt.decode(
+            id_token,
+            signing_key.key,
+            algorithms=["RS256"],
+            audience=audiences,
+            issuer=list(GOOGLE_ISSUERS),
+            options={"require": ["exp", "iat", "iss", "aud", "sub"]},
+            leeway=60,
+        )
+
+    try:
+        claims = await asyncio.to_thread(verify)
+    except jwt.InvalidTokenError:
+        raise HTTPException(401, "Google identity verification failed")
+    except Exception:
+        raise HTTPException(502, "Google identity verification is temporarily unavailable")
+    if not secrets.compare_digest(str(claims.get("nonce", "")), nonce):
+        raise HTTPException(401, "Google identity verification failed")
+    if claims.get("email_verified") is not True:
+        raise HTTPException(401, "Google identity verification failed")
+    email = str(claims.get("email", "")).lower().strip()
+    if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+        raise HTTPException(401, "Google identity verification failed")
+    if not str(claims.get("sub", "")).strip():
+        raise HTTPException(401, "Google identity verification failed")
+    claims["email"] = email
+    return claims
 
 
 async def _system_conn_creds(db, provider: str) -> dict:
@@ -39,6 +103,13 @@ async def _system_conn_creds(db, provider: str) -> dict:
 
 
 async def _system_twilio_verify_creds(db) -> dict:
+    configured = {
+        "account_sid": os.environ.get("TWILIO_ACCOUNT_SID", ""),
+        "auth_token": os.environ.get("TWILIO_AUTH_TOKEN", ""),
+        "verify_service_sid": os.environ.get("TWILIO_VERIFY_SERVICE_SID", ""),
+    }
+    if all(configured.values()):
+        return configured
     return await _system_conn_creds(db, "twilio_verify")
 
 
@@ -94,10 +165,19 @@ def _tenant_id(user: dict) -> str:
     return user.get("tenant_id") or user.get("owner_id") or str(user["_id"])
 
 
+def _public_email(user: dict) -> str:
+    return "" if user.get("phone_auth_only") else str(user.get("email", ""))
+
+
+def _phone_account_email(phone: str) -> str:
+    digest = hashlib.sha256(phone.encode("utf-8")).hexdigest()[:32]
+    return f"phone-{digest}@users.aimarket.local"
+
+
 def create_access_token(user: dict) -> str:
     now = datetime.now(timezone.utc)
     return jwt.encode({
-        "sub": str(user["_id"]), "email": user["email"], "tid": _tenant_id(user),
+        "sub": str(user["_id"]), "email": _public_email(user), "tid": _tenant_id(user),
         "role": user.get("role", "user"), "ver": int(user.get("token_version", 0)),
         "iss": JWT_ISSUER, "iat": now, "exp": now + timedelta(days=ACCESS_TOKEN_DAYS), "type": "access",
     }, get_jwt_secret(), algorithm=JWT_ALGORITHM)
@@ -109,7 +189,7 @@ def _set_cookie(response: Response, token: str):
 
 
 def _public_user(user: dict) -> dict:
-    return {"id": str(user["_id"]), "email": user["email"], "name": user.get("name", ""),
+    return {"id": str(user["_id"]), "email": _public_email(user), "name": user.get("name", ""),
             "role": user.get("role", "user"), "tenant_id": _tenant_id(user),
             "client_id": user.get("client_id"), "phone": user.get("phone", ""),
             "must_change_password": bool(user.get("password_change_required", False))}
@@ -286,6 +366,157 @@ def create_auth_router(db):
     @router.get("/me")
     async def me(user: dict = Depends(get_current_user)):
         return _public_user(user)
+
+    @router.get("/providers")
+    async def provider_readiness():
+        """Expose only client-safe readiness metadata; all provider secrets remain server-side."""
+        sms_ready = bool(await _system_twilio_verify_creds(db))
+        google_ready = google_auth_ready()
+        return {
+            "google": {
+                "available": google_ready,
+                "flow": "id_token_exchange",
+                "required_configuration": [] if google_ready else ["GOOGLE_AUTH_CLIENT_IDS"],
+                "web_client_id": os.environ.get("GOOGLE_AUTH_WEB_CLIENT_ID", "") if google_ready else "",
+            },
+            "phone_otp": {
+                "available": sms_ready,
+                "requires_e164": True,
+                "requires_sms_consent": True,
+                "required_configuration": [] if sms_ready else ["Twilio Verify server credentials"],
+            },
+        }
+
+    @router.post("/google/nonce")
+    async def google_nonce(request: Request):
+        if not google_auth_ready():
+            raise HTTPException(503, "Google sign-in is not configured")
+        remote = request.client.host if request.client else "unknown"
+        if not await _consume_rate_limit(db, "google_nonce", remote, 10, 5):
+            raise HTTPException(429, "Too many sign-in attempts. Please try again shortly.")
+        nonce = secrets.token_urlsafe(32)
+        await db.auth_nonces.insert_one({
+            "nonce_hash": hashlib.sha256(nonce.encode("utf-8")).hexdigest(),
+            "kind": "google_sign_in", "created_at": now_utc(),
+            "expires_at": now_utc() + timedelta(minutes=GOOGLE_NONCE_MINUTES), "used_at": None,
+        })
+        return {"nonce": nonce, "expires_in": GOOGLE_NONCE_MINUTES * 60}
+
+    @router.post("/google")
+    async def google_sign_in(data: GoogleIdentityInput, response: Response):
+        claims = await verify_google_identity_token(data.id_token, data.nonce)
+        nonce_record = await db.auth_nonces.find_one_and_update(
+            {"kind": "google_sign_in", "nonce_hash": hashlib.sha256(data.nonce.encode("utf-8")).hexdigest(),
+             "used_at": None, "expires_at": {"$gt": now_utc()}},
+            {"$set": {"used_at": now_utc()}}, return_document=ReturnDocument.AFTER,
+        )
+        if not nonce_record:
+            raise HTTPException(401, "Google sign-in session is invalid or expired")
+        subject, email = str(claims["sub"]), claims["email"]
+        user = await db.users.find_one({"google_subject": subject})
+        if not user:
+            user = await db.users.find_one({"email": email})
+            if user and user.get("google_subject") and user["google_subject"] != subject:
+                raise HTTPException(409, "This email is already linked to a different Google identity")
+            if user:
+                await db.users.update_one({"_id": user["_id"]}, {"$set": {"google_subject": subject,
+                    "google_linked_at": now_utc(), "last_signed_in_at": now_utc()}})
+                user["google_subject"] = subject
+            else:
+                user_id = ObjectId()
+                user = {"_id": user_id, "email": email, "name": str(claims.get("name", "")).strip()[:120],
+                    "google_subject": subject, "role": "user", "tenant_id": str(user_id), "token_version": 0,
+                    "password_change_required": False, "created_at": now_utc(), "last_signed_in_at": now_utc()}
+                await db.users.insert_one(user)
+                await db.tenants.update_one({"_id": str(user_id)}, {"$setOnInsert": {"_id": str(user_id),
+                    "owner_user_id": str(user_id), "name": user["name"] or email, "created_at": now_utc()}}, upsert=True)
+        token = create_access_token(user)
+        _set_cookie(response, token)
+        return {"user": _public_user(user), "token": token}
+
+    async def _start_phone_challenge(phone: str, intent: str, name: str = "", user: dict | None = None):
+        import integrations_live as live
+        creds = await _system_twilio_verify_creds(db)
+        if not creds:
+            raise HTTPException(503, "SMS OTP is not configured")
+        rate_key = f"{phone}:{intent}"
+        if not await _consume_rate_limit(db, "phone_otp_request", rate_key, 5, 15):
+            raise HTTPException(429, "Too many code requests. Please try again later.")
+        ok, _ = await live.verify_start(creds, phone)
+        if not ok:
+            raise HTTPException(502, "Could not send SMS code")
+        await db.phone_otp_challenges.update_one({"phone": phone, "intent": intent}, {"$set": {
+            "phone": phone, "intent": intent, "name": name, "user_id": str(user["_id"]) if user else None,
+            "consented_at": now_utc(), "created_at": now_utc(), "expires_at": now_utc() + timedelta(minutes=PHONE_OTP_MINUTES),
+        }}, upsert=True)
+        return {"message": "If eligible, a code was sent via SMS", "channel": "sms", "sent_to": mask_phone(phone)}
+
+    @router.post("/otp/phone/request")
+    async def phone_otp_request(data: PhoneOtpRequestInput):
+        if not data.consent:
+            raise HTTPException(422, "SMS consent is required to send a verification code")
+        phone = normalize_e164(data.phone)
+        if data.intent == "signup" and not data.name.strip():
+            raise HTTPException(422, "Your name is required to create an account")
+        return await _start_phone_challenge(phone, data.intent, data.name.strip())
+
+    @router.post("/otp/phone/verify")
+    async def phone_otp_verify(data: PhoneOtpVerifyInput, response: Response):
+        import integrations_live as live
+        phone = normalize_e164(data.phone)
+        challenge = await db.phone_otp_challenges.find_one({"phone": phone, "intent": data.intent,
+            "expires_at": {"$gt": now_utc()}})
+        if not challenge:
+            raise HTTPException(401, "No active verification request")
+        creds = await _system_twilio_verify_creds(db)
+        if not creds:
+            raise HTTPException(503, "SMS OTP is not configured")
+        approved, _ = await live.verify_check(creds, phone, data.code.strip())
+        if not approved:
+            raise HTTPException(401, "Invalid or expired code")
+        await db.phone_otp_challenges.delete_one({"_id": challenge["_id"]})
+        user = await db.users.find_one({"phone": phone})
+        if not user:
+            if data.intent != "signup":
+                raise HTTPException(404, "No account is linked to this phone. Create an account first.")
+            user_id = ObjectId()
+            user = {"_id": user_id, "email": _phone_account_email(phone), "phone": phone, "name": challenge.get("name", "").strip(),
+                "phone_auth_only": True, "role": "user", "tenant_id": str(user_id), "token_version": 0,
+                "password_change_required": False, "created_at": now_utc(), "last_signed_in_at": now_utc()}
+            await db.users.insert_one(user)
+            await db.tenants.update_one({"_id": str(user_id)}, {"$setOnInsert": {"_id": str(user_id),
+                "owner_user_id": str(user_id), "name": user["name"] or phone, "created_at": now_utc()}}, upsert=True)
+        token = create_access_token(user)
+        _set_cookie(response, token)
+        return {"user": _public_user(user), "token": token}
+
+    @router.post("/otp/phone/link/request")
+    async def phone_link_request(data: PhoneOtpRequestInput, user: dict = Depends(get_current_user)):
+        if not data.consent:
+            raise HTTPException(422, "SMS consent is required to send a verification code")
+        return await _start_phone_challenge(normalize_e164(data.phone), "link", user=user)
+
+    @router.post("/otp/phone/link/verify")
+    async def phone_link_verify(data: PhoneOtpVerifyInput, user: dict = Depends(get_current_user)):
+        import integrations_live as live
+        phone = normalize_e164(data.phone)
+        challenge = await db.phone_otp_challenges.find_one({"phone": phone, "intent": "link",
+            "user_id": str(user["_id"]), "expires_at": {"$gt": now_utc()}})
+        if not challenge:
+            raise HTTPException(401, "No active verification request")
+        creds = await _system_twilio_verify_creds(db)
+        if not creds:
+            raise HTTPException(503, "SMS OTP is not configured")
+        approved, _ = await live.verify_check(creds, phone, data.code.strip())
+        if not approved:
+            raise HTTPException(401, "Invalid or expired code")
+        other_user = await db.users.find_one({"phone": phone, "_id": {"$ne": user["_id"]}})
+        if other_user:
+            raise HTTPException(409, "This phone is already linked to another account")
+        await db.phone_otp_challenges.delete_one({"_id": challenge["_id"]})
+        await db.users.update_one({"_id": user["_id"]}, {"$set": {"phone": phone, "phone_verified_at": now_utc()}})
+        user["phone"] = phone
+        return {"user": _public_user(user), "message": "Phone number linked"}
 
     @router.post("/otp/request")
     async def otp_request(data: OtpRequestInput):

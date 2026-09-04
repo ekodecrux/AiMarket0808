@@ -76,4 +76,6 @@
 - [x] Make protected SMTP and production-access tests conditional in GitHub Actions while retaining local live validation
 - [ ] Audit and add secure Google identity sign-in configuration readiness for web and native clients
 - [ ] Audit and add tenant-scoped mobile SMS OTP login readiness with durable secure sessions
-- [ ] Validate Google and OTP failure paths without contacting identity or SMS providers
+- [x] Validate Google and OTP failure paths without contacting identity or SMS providers
+- [x] Add backend Google ID-token verification readiness with JWK, audience, issuer, expiry, email-verification, and single-use nonce safeguards
+- [x] Add consent-based tenant-safe phone OTP onboarding and phone-linking backend readiness using server-side Twilio Verify

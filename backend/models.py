@@ -75,6 +75,24 @@ class OtpVerifyInput(BaseModel):
     code: str
 
 
+class GoogleIdentityInput(BaseModel):
+    id_token: str = Field(min_length=100, max_length=16384)
+    nonce: str = Field(min_length=16, max_length=128)
+
+
+class PhoneOtpRequestInput(BaseModel):
+    phone: str = Field(min_length=8, max_length=32)
+    consent: bool
+    intent: Literal["login", "signup"] = "login"
+    name: str = Field(default="", max_length=120)
+
+
+class PhoneOtpVerifyInput(BaseModel):
+    phone: str = Field(min_length=8, max_length=32)
+    code: str = Field(min_length=4, max_length=12)
+    intent: Literal["login", "signup"] = "login"
+
+
 # ---------- Strategy ----------
 class StrategyInput(BaseModel):
     industry: str
